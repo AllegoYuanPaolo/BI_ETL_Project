@@ -1,6 +1,7 @@
 SELECT 
     c.city, 
-    SUM(o.total_price) AS total_revenue, COUNT(DISTINCT o.orderNumber) AS total_orders,
+    SUM(o.total_price) AS total_revenue, 
+    COUNT(DISTINCT o.orderNumber) AS total_orders,
     SUM(o.total_price) / COUNT(DISTINCT o.orderNumber) AS average_revenue_per_order
 FROM customers c
 

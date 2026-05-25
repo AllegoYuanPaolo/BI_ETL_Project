@@ -33,7 +33,7 @@ def city_revenue():
             "city": row.customer_city,
             "total_revenue": row.total_revenue,
             "total_orders": row.total_orders,
-            "average_order_value": aov(row.total_revenue , row.total_orders)
+            "aov": aov(row.total_revenue , row.total_orders)
         } for row in results
     ]
 

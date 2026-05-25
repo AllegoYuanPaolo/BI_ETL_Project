@@ -48,9 +48,6 @@ def clear_table_one(conn: Session, fact_table: Type[dst.Base], dim_table: Type[d
 
 
 #                   === LOAD FUNCS ===
-# Flow:
-#   Extract transformed data -> truncate destination table -> load data
-
 dest_conn = get_db_connection('orderStatistics')
 
 def load_city_revenue():
