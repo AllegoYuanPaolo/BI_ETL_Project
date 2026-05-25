@@ -61,15 +61,80 @@ def product_revenue():
     ]
 
 def office_revenue():
-    pass
+    stmt = (
+        select(
+            dst.FactOfficeSales.total_revenue,
+            dst.FactOfficeSales.total_orders,
+            dst.DimOfficeSales.office_city
+        )
+        .join(dst.DimOfficeSales)
+        .group_by(dst.DimOfficeSales.office_city)
+        .order_by(desc(dst.FactOfficeSales.total_revenue))
+    )
+
+    results = conn.execute(stmt).all()
+
+    return [
+        {
+            "office_city": r.office_city,
+            "total_revenue": r.total_revenue,
+            "total_orders": r.total_orders,
+            "aov": aov(r.total_revenue, r.total_orders)    
+        } for r in results
+    ]
 
 def employee_revenue():
-    pass
+    stmt = (
+        select(
+            dst.FactEmployeeRevenue.total_orders,
+            dst.FactEmployeeRevenue.total_revenue,
+            dst.DimEmployeeRevenue.employee_name,
+            dst.DimEmployeeRevenue.employee_number,
+            dst.DimEmployeeRevenue.office_city
+        )
+        .join(dst.DimEmployeeRevenue)
+        .group_by(dst.DimEmployeeRevenue.employee_number)
+        .order_by(desc(dst.FactEmployeeRevenue.total_revenue))
+    )
+
+    results = conn.execute(stmt).all()
+
+    return [
+        {
+            "employee_number": r.employee_number,
+            "employee_name": r.employee_name,
+            "total_revenue": r.total_revenue,
+            "total_orders": r.total_orders,
+            "aov": aov(r.total_revenue, r.total_orders)
+        } for r  in results
+    ]
+    ...
 
 def productline_revenue():
-    pass
+    stmt = (
+        select (
+            dst.FactProductLineRevenue.total_orders,
+            dst.FactProductLineRevenue.total_revenue,
+            dst.FactProductLineRevenue.product_line,
+            dst.DimProductLineRevenue.product_line_description,
+        )
+        .join(dst.DimProductLineRevenue)
+        .group_by(dst.FactProductLineRevenue.product_line)
+        .order_by(desc(dst.FactProductLineRevenue.total_revenue))
+    )
+    results = conn.execute(stmt).all()
+
+    return [
+        {
+            "product_line": r.product_line,
+            "total_revenue": r.total_revenue,
+            "total_orders": r.total_orders,
+            "aov": aov(r.total_revenue, r.total_orders),
+            "description": r.product_line_description 
+        } for r in results
+    ]
 
 
 if __name__ == "__main__":
-    _print_shallow_dict(city_revenue())
+    _print_shallow_dict(productline_revenue())
     ...
