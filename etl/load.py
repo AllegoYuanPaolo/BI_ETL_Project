@@ -99,6 +99,8 @@ def load_product_revenue():
     dest_conn.commit()
     ...
 
+def 
+
 
 
 if __name__ == "__main__":
