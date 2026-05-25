@@ -22,9 +22,9 @@ class DimEmployeeRevenue(Base):
 class DimOfficeSales(Base):
     __tablename__ = 'dim_office_sales'
 
-    office_code = mapped_column(String(10), primary_key=True)
+    office_code = mapped_column(String(10), primary_key=True, nullable=False)
+
     office_city = mapped_column(String(50), nullable=False)
-    sales_rep_employee_number = mapped_column(INTEGER, nullable=False)
 
     fact_office_sales: Mapped[List['FactOfficeSales']] = relationship('FactOfficeSales', uselist=True, back_populates='dim_office_sales')
 
@@ -80,9 +80,11 @@ class FactOfficeSales(Base):
     )
 
     office_sales_id = mapped_column(Integer, primary_key=True)
+    
     office_code = mapped_column(String(10), nullable=False)
-    sales_rep_employee_number = mapped_column(INTEGER, nullable=False)
+
     total_revenue = mapped_column(DECIMAL(10, 2), nullable=False)
+    
     total_orders = mapped_column(Integer, nullable=False)
 
     dim_office_sales: Mapped['DimOfficeSales'] = relationship('DimOfficeSales', back_populates='fact_office_sales')

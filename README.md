@@ -58,16 +58,14 @@ Schema:
 CREATE TABLE IF NOT EXISTS `Fact_Office_Sales` (
     `office_sales_id` INT AUTO_INCREMENT PRIMARY KEY,
     `office_code` INT NOT NULL,
-    `sales_rep_employee_number` INT NOT NULL,
     
     `total_revenue` DECIMAL(10, 2) NOT NULL, 
     `total_orders` INT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS `Dim_Office_Sales` (
-    `office_code` INT AUTO_INCREMENT PRIMARY KEY,
+    `office_code` VARCHAR(10) PRIMARY KEY,
     `office_city` VARCHAR(50) NOT NULL,
-    `sales_rep_employee_number` INT NOT NULL
 );
 ```
 - The source data will be transformed as:

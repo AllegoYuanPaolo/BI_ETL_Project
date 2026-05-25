@@ -39,13 +39,11 @@ CREATE TABLE IF NOT EXISTS `Fact_Product_Sales` (
 CREATE TABLE IF NOT EXISTS `Dim_Office_Sales` (
     `office_code` VARCHAR(10) PRIMARY KEY,
     `office_city` VARCHAR(50) NOT NULL,
-    `sales_rep_employee_number` INT UNSIGNED NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS `Fact_Office_Sales` (
     `office_sales_id` INT AUTO_INCREMENT PRIMARY KEY,
     `office_code` VARCHAR(10) NOT NULL,
-    `sales_rep_employee_number` INT UNSIGNED NOT NULL,
     
     `total_revenue` DECIMAL(10, 2) NOT NULL, 
     `total_orders` INT NOT NULL,

@@ -1,5 +1,6 @@
 SELECT
     off.city AS office_loc,
+    COUNT(ord.orderNumber) as total_orders,
     SUM(ord.total_price) AS office_revenue
 
 FROM offices AS off

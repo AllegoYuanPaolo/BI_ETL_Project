@@ -1,7 +1,8 @@
 SELECT
     emp.employeeNumber,
     emp.firstName,
-    SUM(ord.total_price) as employee_revenue
+    SUM(ord.total_price) as employee_revenue,
+    COUNT(ord.orderNumber) as total_orders
 
 FROM employees AS emp
 JOIN customers as cust
