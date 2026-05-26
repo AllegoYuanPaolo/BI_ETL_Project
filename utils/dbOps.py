@@ -22,5 +22,5 @@ if __name__ == "__main__":
     db = get_db_connection("ordertracking")
     result = db.query(src_models.Order).all()
     for row in result:
-        print(row.orderNumber, row.total_price)
+        print(row.orderNumber)
     ... 

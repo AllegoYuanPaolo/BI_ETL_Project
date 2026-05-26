@@ -7,13 +7,58 @@
   - Uvicorn to run the web server
   - SQAlchemy as the ORM framework
   - PyMySQL for the MySQL driver
-- All of the pip dependencies are listed on [requirements.txt](requirements.txt) 
+- All of the `pip` dependencies are listed on [requirements.txt](requirements.txt) 
+
+## Walkthrough
+- To recreate the database setup that has been used for this codebase; you will find an [`sql file`](sql/db/full_project_db.sql) that contains the database structure and contents
+  - This was created with the command:
+    ```shell
+    mysqldump -u root --databases ordertracking orderstatistics > sql/db/full_project_db.sql
+    ```
+    - It creates a dump of both databases into a single `.sql` file
+  - To use this, follow the given commands:
+    ```shell
+    C:\path\to\project> mysql -u root
+    ...
+    mysql> source sql/db/full_project_db.sql
+    ```
+    - This executes the script in the `.sql` file and recreates the both `orderTracking` and `orderStatistics` database onto your environtment
+
+- To install the `pip` dependencies, create a Virtual ENVirontment first or venv
+    ```shell
+    cd project/root/path
+    python -m venv .venv
+    ```
+  - This will create a `.venv/` in the project root directory where it will have an isolated python interpreter and packages from the global packages
+  - It will automatically open and use the venv; you can confirm this if your terminal looks like so:
+    ```shell
+    C:\path\to\project>          # venv is not active
+    (.venv) C:\path\to\project>  # venv is active
+    ```
+
+- Next, use the following command to install the dependencies:
+    ```shell
+    pip install -r requirements.text
+    ```
+    - `pip`, or Python's package manager, will recursively install all the listed `requirements.txt`
+
+- To run the web server, simply just run `./main.py` either from the VS Code GUI or by using `python main.py` in the terminal
+  - You will now be able to access it via `http://localhost:5010`
+    - Opening this should show a JSON message of:
+    ```json
+    {
+        "message": "it works!(✿◕‿◕✿)"
+    }
+    ```
+
+
 
 
 # Table of Contents
 - [Business Intelligence ETL Project](#business-intelligence-etl-project)
   - [Overview](#overview)
   - [Tech Stack](#tech-stack)
+  - [Walkthrough](#walkthrough)
 - [Table of Contents](#table-of-contents)
   - [KPIs to Address](#kpis-to-address)
     - [1. Which city has the best market for sales?](#1-which-city-has-the-best-market-for-sales)
@@ -241,8 +286,8 @@ To create models easier, there is a tool that we can use to auto generate the mo
 ```shell
 sqlacodegen_v2 mysql+pymysql://root:password@localhost/database_name --outfile models.py
 ```
-- This tool is in the `sqlacodegen_v2` package, so make sure to install it first using pip if you haven't already.
+- This tool is in the `sqlacodegen_v2` package, so make sure to install it first using `pip` if you haven't already.
     ```shell
-    pip install sqlacodegen-v2
+    `pip` install sqlacodegen-v2
     ```
 

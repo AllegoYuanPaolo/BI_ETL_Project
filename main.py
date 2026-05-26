@@ -19,6 +19,9 @@ app.add_middleware(
 app.include_router(sales.router)
 app.include_router(etl.router)
 
+@app.get('/')
+def landing():
+    return {"message": "it works!(✿◕‿◕✿)"}
 
 @app.get('/test')
 def test():
