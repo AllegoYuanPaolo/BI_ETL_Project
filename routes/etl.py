@@ -10,11 +10,11 @@ router = APIRouter(
 def refresh():
     try:
         main.run_etl()
-        return {"message": "OK"}
+        return {"status": "OK"}
     except Exception as err:
         return {
-                    "message": "ERROR",
-                    "ERROR": err
+                    "status": "ERROR",
+                    "message": err
                 }
     
     

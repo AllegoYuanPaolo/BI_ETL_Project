@@ -6,6 +6,10 @@
   - [Overview](#overview)
   - [Tech Stack](#tech-stack)
   - [Walkthrough](#walkthrough)
+    - [MySQL](#mysql)
+    - [Python Venv](#python-venv)
+    - [Web Server use](#web-server-use)
+    - [API use](#api-use)
   - [KPIs to Address](#kpis-to-address)
     - [1. Which city has the best market for sales?](#1-which-city-has-the-best-market-for-sales)
     - [2. Which product has the highest sales?](#2-which-product-has-the-highest-sales)
@@ -13,6 +17,8 @@
     - [4. Which Sales Rep Generates the most revenue?](#4-which-sales-rep-generates-the-most-revenue)
     - [5. Which product line generates the most revenue?](#5-which-product-line-generates-the-most-revenue)
   - [API Enpoints](#api-enpoints)
+    - [`/etl` Endpoints](#etl-endpoints)
+      - [1. `GET /etl/refresh`](#1-get-etlrefresh)
     - [`/sales` Endpoints](#sales-endpoints)
       - [1. `GET /sales/cities`](#1-get-salescities)
       - [2. `GET /sales/offices`](#2-get-salesoffices)
@@ -34,6 +40,7 @@
 - All of the `pip` dependencies are listed on [requirements.txt](requirements.txt) 
 
 ## Walkthrough
+### MySQL
 - To recreate the database setup that has been used for this codebase; you will find an [`sql file`](sql/db/full_project_db.sql) that contains the database structure and contents
   - This was created with the command:
     ```shell
@@ -48,6 +55,7 @@
     ```
     - This executes the script in the `.sql` file and recreates the both `orderTracking` and `orderStatistics` database onto your environtment
 
+### Python Venv
 - To install the `pip` dependencies, create a Virtual ENVirontment first or venv
     ```shell
     cd project/root/path
@@ -66,6 +74,7 @@
     ```
     - `pip`, or Python's package manager, will recursively install all the listed `requirements.txt`
 
+### Web Server use
 - To run the web server, simply just run `./main.py` either from the VS Code GUI or by using `python main.py` in the terminal
   - You will now be able to access it via `http://localhost:5010`
     - Opening this should show a JSON message of:
@@ -75,8 +84,54 @@
     }
     ```
 
+### API use
+- To use the API endpoint, the JavaScript endpoint function is already provided below along with a usage example:
+    ```javascript
+    
+    /**
+    * API call function using GET method
+    * @param {string} endpoint - The name of the endpoint to call; E.G., `sale/cities`
+    * @returns {Promise<Array<Object>>} An array of OBjects from a JSON reponse
+    * @throws {Error} If the fetch fails
+    * @async Waits for the backend API to respond
+    */
+    async function fetch_data(endpoint) {
+        const api_url = `http://localhost:5010/${endpoint}`;
+        try{
+            const response = await fetch(api_url);
 
+            if (!response.ok){
+                throw new Error(`HTTP ERROR! status: ${response.status}`);
+            }
 
+            const data = await response.json();
+            return data;
+        } catch (error){
+            console.error('FETCH ERROR:', error);
+            throw error;
+        }
+    }
+
+    // Usage:
+    // Contained inside a try-catch to handle errors gracefully
+    try{    
+        // Always use `await` in front of the function because it's async
+        const cities = await fetch_data("sales/cities");
+
+        /* 
+        `cities` now hold the value, an Array<Object> (array of objects)
+        You can now use .forEach() to do the logic here
+        */
+        cities.forEach(city => {
+            console.log("name:", city.city);
+            console.log("revenue:", city.total_revenue);
+            console.log("orders:", city.total_orders);
+        });
+    } catch (error) {
+        console.error("INIT ERROR:", error);
+        
+    }
+    ```
 
 ## KPIs to Address
 - These KPIs (Key Performance Indicators) all involve the revenues of various entities involved in the sample business database.  However, an additional metric has been added to provide more insight to the business; Average Order Value (`aov`)
@@ -207,6 +262,25 @@ CREATE TABLE IF NOT EXISTS `Dim_Product_Line_Revenue` (
 - There are two categories of the endpoints:
   - `/etl`
   - `/sales`
+
+### `/etl` Endpoints
+#### 1. `GET /etl/refresh`
+- This triggers the entire pipeline to Extract, Transform, and Load--essentially refresing the data
+- Data to receive:
+  - If no errors are encountered:
+    ```json
+    {
+        "status": "OK"
+    }
+    ```
+  - If an error is encountered:
+    ```json
+    {
+        "status": "ERROR",
+        "messaage": "error message"
+    }
+    ```
+
 
 ### `/sales` Endpoints
 #### 1. `GET /sales/cities`
