@@ -70,7 +70,7 @@
 
 - Next, use the following command to install the dependencies:
     ```shell
-    pip install -r requirements.text
+    pip install -r requirements.txt
     ```
     - `pip`, or Python's package manager, will recursively install all the listed `requirements.txt`
 
