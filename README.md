@@ -1,4 +1,28 @@
 # Business Intelligence ETL Project
+
+# Table of Contents
+- [Business Intelligence ETL Project](#business-intelligence-etl-project)
+- [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Tech Stack](#tech-stack)
+  - [Walkthrough](#walkthrough)
+  - [KPIs to Address](#kpis-to-address)
+    - [1. Which city has the best market for sales?](#1-which-city-has-the-best-market-for-sales)
+    - [2. Which product has the highest sales?](#2-which-product-has-the-highest-sales)
+    - [3. Which office rpovides the best sales support?](#3-which-office-rpovides-the-best-sales-support)
+    - [4. Which Sales Rep Generates the most revenue?](#4-which-sales-rep-generates-the-most-revenue)
+    - [5. Which product line generates the most revenue?](#5-which-product-line-generates-the-most-revenue)
+  - [API Enpoints](#api-enpoints)
+    - [`/sales` Endpoints](#sales-endpoints)
+      - [1. `GET /sales/cities`](#1-get-salescities)
+      - [2. `GET /sales/offices`](#2-get-salesoffices)
+      - [3. `GET /sales/products`](#3-get-salesproducts)
+      - [4. `GET /sales/employee`](#4-get-salesemployee)
+      - [5. `GET /sales/product_line`](#5-get-salesproduct_line)
+  - [Auxiliary Information](#auxiliary-information)
+    - [Model Creation](#model-creation)
+
+
 ## Overview
 - This ETL Project's focus is on building a data pipeline, dashboard, and data visualization.  This codebase focuses on the backend code where the pipeline between the two databases: `orderTracking` and `orderStatistics`
 ## Tech Stack
@@ -52,29 +76,6 @@
     ```
 
 
-
-
-# Table of Contents
-- [Business Intelligence ETL Project](#business-intelligence-etl-project)
-  - [Overview](#overview)
-  - [Tech Stack](#tech-stack)
-  - [Walkthrough](#walkthrough)
-- [Table of Contents](#table-of-contents)
-  - [KPIs to Address](#kpis-to-address)
-    - [1. Which city has the best market for sales?](#1-which-city-has-the-best-market-for-sales)
-    - [2. Which product has the highest sales?](#2-which-product-has-the-highest-sales)
-    - [3. Which office rpovides the best sales support?](#3-which-office-rpovides-the-best-sales-support)
-    - [4. Which Sales Rep Generates the most revenue?](#4-which-sales-rep-generates-the-most-revenue)
-    - [5. Which product line generates the most revenue?](#5-which-product-line-generates-the-most-revenue)
-  - [API Enpoints](#api-enpoints)
-    - [`/sales` Endpoints](#sales-endpoints)
-      - [1. `GET /sales/cities`](#1-get-salescities)
-      - [2. `GET /sales/offices`](#2-get-salesoffices)
-      - [3. `GET /sales/products`](#3-get-salesproducts)
-      - [4. `GET /sales/employee`](#4-get-salesemployee)
-      - [5. `GET /sales/product_line`](#5-get-salesproduct_line)
-  - [Auxiliary Information](#auxiliary-information)
-    - [Model Creation](#model-creation)
 
 
 ## KPIs to Address
