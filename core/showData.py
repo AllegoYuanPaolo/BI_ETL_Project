@@ -1,21 +1,16 @@
 from utils import dbOps
 from models import dest_models as dst
 from sqlalchemy import select, desc, func
+import schemas.APIContracts as contract
 
 
-def _print_shallow_dict(data: list[dict]):
-    for element in data:
-        for key, value in element.items():
-            print(f"{key} : {value}")
-        print()
-    ...
-
-def aov(revenue: float, orders: int)->float:
-    return round((revenue / orders), 2) if orders > 0 else 0
+def data_dump(dataList: list)->None:
+    for item in dataList:
+        print(item.model_dump())
 
 conn = dbOps.get_db_connection('orderStatistics')
 
-def city_revenue():
+def city_revenue()->list[contract.CityRevenue]:
     stmt = (
         select(
             dst.FactSales.total_revenue,
@@ -29,15 +24,14 @@ def city_revenue():
     results = conn.execute(stmt)
 
     return [
-        {
-            "city": row.customer_city,
-            "total_revenue": row.total_revenue,
-            "total_orders": row.total_orders,
-            "aov": aov(row.total_revenue , row.total_orders)
-        } for row in results
+        contract.CityRevenue(
+            city=row.customer_city,
+            total_revenue=row.total_revenue,
+            total_orders=row.total_orders
+        ) for row in results
     ]
 
-def product_revenue():
+def product_revenue()->list[contract.ProductRevenue]:
     stmt = (
         select(
             dst.FactProductSales.total_revenue,
@@ -52,15 +46,14 @@ def product_revenue():
     results = conn.execute(stmt).all()
 
     return [
-        {
-            "product": r.product_name,
-            "total_revenue": r.total_revenue,
-            "total_orders": r.total_orders,
-            "aov": aov(r.total_revenue, r.total_orders)
-        } for r in results
+        contract.ProductRevenue(
+            product=r.product_name,
+            total_orders=r.total_orders,
+            total_revenue=r.total_revenue
+        ) for r in results
     ]
 
-def office_revenue():
+def office_revenue()->list[contract.OfficeRevenue]:
     stmt = (
         select(
             dst.FactOfficeSales.total_revenue,
@@ -75,15 +68,14 @@ def office_revenue():
     results = conn.execute(stmt).all()
 
     return [
-        {
-            "office_city": r.office_city,
-            "total_revenue": r.total_revenue,
-            "total_orders": r.total_orders,
-            "aov": aov(r.total_revenue, r.total_orders)    
-        } for r in results
+        contract.OfficeRevenue(
+            office_city=r.office_city,
+            total_orders=r.total_orders,
+            total_revenue=r.total_revenue
+        ) for r in results
     ]
 
-def employee_revenue():
+def employee_revenue()->list[contract.EmployeeRevenue]:
     stmt = (
         select(
             dst.FactEmployeeRevenue.total_orders,
@@ -100,17 +92,17 @@ def employee_revenue():
     results = conn.execute(stmt).all()
 
     return [
-        {
-            "employee_number": r.employee_number,
-            "employee_name": r.employee_name,
-            "total_revenue": r.total_revenue,
-            "total_orders": r.total_orders,
-            "aov": aov(r.total_revenue, r.total_orders)
-        } for r  in results
+        contract.EmployeeRevenue(
+            employee_number=r.employee_number,
+            employee_name=r.employee_name,
+            total_orders=r.total_orders,
+            total_revenue=r.total_revenue,
+            office_city=r.office_city
+        ) for r  in results
     ]
     ...
 
-def productline_revenue():
+def productline_revenue()->list[contract.ProductLineRevenue]:
     stmt = (
         select (
             dst.FactProductLineRevenue.total_orders,
@@ -125,16 +117,15 @@ def productline_revenue():
     results = conn.execute(stmt).all()
 
     return [
-        {
-            "product_line": r.product_line,
-            "total_revenue": r.total_revenue,
-            "total_orders": r.total_orders,
-            "aov": aov(r.total_revenue, r.total_orders),
-            "description": r.product_line_description 
-        } for r in results
+        contract.ProductLineRevenue(
+            product_line=r.product_line,
+            description=r.product_line_description,
+            total_revenue=r.total_revenue,
+            total_orders=r.total_orders
+        ) for r in results
     ]
 
 
 if __name__ == "__main__":
-    _print_shallow_dict(productline_revenue())
+    data_dump(city_revenue())
     ...

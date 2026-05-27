@@ -1,5 +1,7 @@
 # Business Intelligence ETL Project
-
+- Contributors:
+  - Allego, Yuan Paolo A. 
+  - Nale, Luther Ian S.
 # Table of Contents
 - [Business Intelligence ETL Project](#business-intelligence-etl-project)
 - [Table of Contents](#table-of-contents)
