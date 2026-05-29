@@ -17,7 +17,7 @@ def get_logger(module_name: str):
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s')
 
         # 1. File Handler (saves to etl.log)
-        file_handler = logging.FileHandler('logs/etl_process.log')
+        file_handler = logging.FileHandler('app/logs/etl_process.log')
         file_handler.setFormatter(formatter)
         
         # 2. Console Handler (shows in terminal)

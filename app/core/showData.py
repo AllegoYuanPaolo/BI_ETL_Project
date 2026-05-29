@@ -8,7 +8,20 @@ def data_dump(dataList: list)->None:
     for item in dataList:
         print(item.model_dump())
 
-conn = dbOps.get_db_connection('orderStatistics')
+_stats  = dbOps.get_session_factory('orderStatistics')
+
+def _exec(stmt):
+    """Run a SQLAlchemy statement, auto-close session."""
+    session = _stats()
+    try:
+        return session.execute(stmt).all()
+    except Exception:
+        session.rollback()
+        return session.execute(stmt).all()
+    finally:
+        session.close()
+
+
 
 def city_revenue()->list[contract.CityRevenue]:
     stmt = (
@@ -21,7 +34,7 @@ def city_revenue()->list[contract.CityRevenue]:
         .group_by(dst.DimSales.customer_city)
         .order_by(desc(dst.FactSales.total_revenue))
     )
-    results = conn.execute(stmt)
+    results = _exec(stmt)
 
     return [
         contract.CityRevenue(
@@ -43,7 +56,7 @@ def product_revenue()->list[contract.ProductRevenue]:
         .order_by(desc(dst.FactProductSales.total_revenue))
     )
 
-    results = conn.execute(stmt).all()
+    results = _exec(stmt)
 
     return [
         contract.ProductRevenue(
@@ -65,7 +78,7 @@ def office_revenue()->list[contract.OfficeRevenue]:
         .order_by(desc(dst.FactOfficeSales.total_revenue))
     )
 
-    results = conn.execute(stmt).all()
+    results = _exec(stmt)
 
     return [
         contract.OfficeRevenue(
@@ -89,7 +102,7 @@ def employee_revenue()->list[contract.EmployeeRevenue]:
         .order_by(desc(dst.FactEmployeeRevenue.total_revenue))
     )
 
-    results = conn.execute(stmt).all()
+    results = _exec(stmt)
 
     return [
         contract.EmployeeRevenue(
@@ -114,7 +127,7 @@ def productline_revenue()->list[contract.ProductLineRevenue]:
         .group_by(dst.FactProductLineRevenue.product_line)
         .order_by(desc(dst.FactProductLineRevenue.total_revenue))
     )
-    results = conn.execute(stmt).all()
+    results = _exec(stmt)
 
     return [
         contract.ProductLineRevenue(

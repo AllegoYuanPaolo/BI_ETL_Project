@@ -1,6 +1,6 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn 
+import uvicorn
 
 from routes import sales
 from routes import etl

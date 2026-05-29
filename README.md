@@ -34,12 +34,19 @@
 ## Overview
 - This ETL Project's focus is on building a data pipeline, dashboard, and data visualization.  This codebase focuses on the backend code where the pipeline between the two databases: `orderTracking` and `orderStatistics`
 ## Tech Stack
-- The project codebase is comprised of Python
+- The backend codebase is comprised of Python:
   - FastAPI framework to create APIs and routes
   - Uvicorn to run the web server
   - SQAlchemy as the ORM framework
   - PyMySQL for the MySQL driver
 - All of the `pip` dependencies are listed on [requirements.txt](requirements.txt) 
+
+- The frontend codebase is comprised of:
+  - HTML
+  - CSS
+  - JavaScript (vanilla)
+> *Frontend dev, please update this if you're using libraries/dependencies.  Then remove this message afterwards*
+
 
 ## Walkthrough
 ### MySQL
@@ -69,6 +76,10 @@
     C:\path\to\project>          # venv is not active
     (.venv) C:\path\to\project>  # venv is active
     ```
+  - If it doesn't work, run this command to manually activate the venv:
+    ```shell
+    C:\path\to\project> ./.venv/Scripts/activate.bat
+    ```
 
 - Next, use the following command to install the dependencies:
     ```shell
@@ -77,14 +88,11 @@
     - `pip`, or Python's package manager, will recursively install all the listed `requirements.txt`
 
 ### Web Server use
-- To run the web server, simply just run `./main.py` either from the VS Code GUI or by using `python main.py` in the terminal
-  - You will now be able to access it via `http://localhost:5010`
-    - Opening this should show a JSON message of:
-    ```json
-    {
-        "message": "it works!(✿◕‿◕✿)"
-    }
-    ```
+- To run the both backend and frontend server, simply only type `run_servers` in the terminal from the project root.  This is start two new cmd windows that will run the backend server (`app/main.py`) and the frontend server (`frontend/run.py`) 
+- PORTS:
+  - Backend: 5010
+  - Frontend: 5090
+
 
 ### API use
 - To use the API endpoint, the JavaScript endpoint function is already provided below along with a usage example:
@@ -365,6 +373,7 @@ sqlacodegen_v2 mysql+pymysql://root:password@localhost/database_name --outfile m
 ```
 - This tool is in the `sqlacodegen_v2` package, so make sure to install it first using `pip` if you haven't already.
     ```shell
-    `pip` install sqlacodegen-v2
+    pip install sqlacodegen-v2
     ```
+
 

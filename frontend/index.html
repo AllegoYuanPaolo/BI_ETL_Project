@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0c0c0f;
+      --surface:  #111115;
+      --surface2: #18181e;
+      --border:   rgba(255,255,255,0.06);
+      --border2:  rgba(255,255,255,0.10);
+
+      --amber:  #f5a623;
+      --amber2: rgba(245,166,35,0.12);
+      --blue:   #4f8ef7;
+      --blue2:  rgba(79,142,247,0.12);
+      --green:  #3ecf8e;
+      --green2: rgba(62,207,142,0.12);
+      --rose:   #f76f6f;
+
+      --text-1: #f2f2f5;
+      --text-2: #7a7a90;
+      --text-3: #3d3d52;
+
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Sora', sans-serif;
+
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text-1);
+      font-family: var(--sans);
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    .shell { max-width: 1260px; margin: 0 auto; padding: 36px 32px 72px; }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 44px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: var(--text-1);
+    }
+    .live-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--green);
+      background: var(--green2);
+      border: 1px solid rgba(62,207,142,0.2);
+      border-radius: 99px;
+      padding: 5px 14px;
+      letter-spacing: 0.04em;
+    }
+    .live-dot {
+      width: 5px; height: 5px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    /* ── Section label ───────────────────────────────────────── */
+    .label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 14px;
+    }
+
+    /* ── KPI strip ───────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 22px 20px 18px;
+      position: relative;
+      overflow: hidden;
+      cursor: default;
+      transition: border-color 0.25s, transform 0.2s;
+    }
+    .kpi:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .kpi-accent {
+      position: absolute;
+      top: 0; left: 20px;
+      width: 32px; height: 2px;
+      border-radius: 0 0 2px 2px;
+    }
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-2);
+      margin-bottom: 10px;
+    }
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      line-height: 1;
+      color: var(--text-1);
+    }
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 8px;
+    }
+
+    /* ── Cards ───────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 22px 22px 20px;
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .card-title { font-size: 13px; font-weight: 500; color: var(--text-1); }
+    .card-badge {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-3);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 9px;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Grid layouts ────────────────────────────────────────── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .mb-10 { margin-bottom: 10px; }
+    .mb-32 { margin-bottom: 32px; }
+
+    /* ── Bar rows ────────────────────────────────────────────── */
+    .bar-rows { display: flex; flex-direction: column; gap: 13px; }
+    .bar-row { display: flex; align-items: center; gap: 12px; }
+    .bar-name {
+      width: 90px; flex-shrink: 0;
+      font-size: 11px; color: var(--text-2);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .bar-track {
+      flex: 1; height: 4px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 99px; overflow: hidden;
+    }
+    .bar-fill { height: 100%; border-radius: 99px; transition: width 0.9s cubic-bezier(0.4,0,0.2,1); }
+    .bar-val {
+      width: 70px; text-align: right; flex-shrink: 0;
+      font-size: 11px; font-family: var(--mono);
+      color: var(--text-2);
+    }
+
+    /* ── Employee list ───────────────────────────────────────── */
+    .emp-list { display: flex; flex-direction: column; }
+    .emp-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .emp-row:last-child { border-bottom: none; }
+    .emp-left { display: flex; align-items: center; gap: 11px; }
+    .avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; flex-shrink: 0;
+    }
+    .emp-name { font-size: 12px; font-weight: 500; }
+    .emp-meta { font-size: 10px; color: var(--text-3); margin-top: 1px; }
+    .emp-rev {
+      font-size: 12px; font-weight: 600;
+      font-family: var(--mono);
+      color: var(--amber);
+    }
+
+    /* ── Donut ───────────────────────────────────────────────── */
+    .donut-wrap { display: flex; align-items: center; gap: 24px; }
+    .donut-canvas-wrap { width: 110px; height: 110px; flex-shrink: 0; }
+    .donut-legend { flex: 1; display: flex; flex-direction: column; gap: 9px; }
+    .legend-item {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 11px;
+    }
+    .legend-left { display: flex; align-items: center; gap: 8px; color: var(--text-2); }
+    .legend-dot { width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0; }
+    .legend-count { font-family: var(--mono); font-size: 11px; color: var(--text-1); }
+
+    /* ── Product table ───────────────────────────────────────── */
+    .prod-table { width: 100%; border-collapse: collapse; }
+    .prod-table th {
+      font-size: 10px; font-weight: 500;
+      color: var(--text-3); text-transform: uppercase;
+      letter-spacing: 0.08em; text-align: left;
+      padding: 0 0 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .prod-table th:last-child { text-align: right; }
+    .prod-table td {
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px; vertical-align: middle;
+    }
+    .prod-table tr:last-child td { border-bottom: none; }
+    .prod-table td:last-child {
+      text-align: right;
+      font-family: var(--mono);
+      color: var(--amber);
+    }
+    .rank-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px;
+      border-radius: 4px; font-size: 9px; font-weight: 700;
+      margin-right: 10px;
+    }
+    .r1 { background: rgba(245,166,35,0.15); color: var(--amber); }
+    .r2 { background: rgba(79,142,247,0.12); color: var(--blue); }
+    .r3 { background: rgba(62,207,142,0.12); color: var(--green); }
+    .rn { background: var(--surface2); color: var(--text-3); }
+    .line-chip {
+      font-size: 10px; padding: 2px 8px;
+      border-radius: 5px;
+      background: var(--surface2); color: var(--text-3);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Shimmer / loading ───────────────────────────────────── */
+    .shimmer {
+      background: linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);
+      background-size: 200% 100%;
+      animation: sh 1.5s infinite;
+      border-radius: var(--r-sm);
+    }
+    @keyframes sh { from{background-position:200% 0} to{background-position:-200% 0} }
+    .state-msg { display:flex; align-items:center; justify-content:center; height:70px; font-size:12px; color:var(--text-3); }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <header>
+    <span class="header-title">Dashboard</span>
+  </header>
+
+  <!-- KPIs -->
+  <div class="label">Overview</div>
+  <div class="kpi-grid mb-32" id="kpiGrid">
+    <div class="kpi shimmer" style="height:108px;"></div>
+    <div class="kpi shimmer" style="height:108px;"></div>
+    <div class="kpi shimmer" style="height:108px;"></div>
+    <div class="kpi shimmer" style="height:108px;"></div>
+  </div>
+
+  <!-- Revenue breakdown -->
+  <div class="label">Revenue breakdown</div>
+  <div class="grid-2 mb-10">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">By product line</span>
+        <span class="card-badge" id="plTag">—</span>
+      </div>
+      <div style="position:relative;width:100%;height:200px;">
+        <canvas id="plChart" role="img" aria-label="Revenue by product line"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">By customer city</span>
+        <span class="card-badge" id="cityTag">—</span>
+      </div>
+      <div class="bar-rows" id="cityBars">
+        <div class="shimmer" style="height:10px;"></div>
+        <div class="shimmer" style="height:10px;width:80%;"></div>
+        <div class="shimmer" style="height:10px;width:65%;"></div>
+        <div class="shimmer" style="height:10px;width:50%;"></div>
+        <div class="shimmer" style="height:10px;width:38%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- People & operations -->
+  <div class="label" style="margin-top:28px;">People & operations</div>
+  <div class="grid-3 mb-10">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Top employees</span>
+        <span class="card-badge" id="empTag">—</span>
+      </div>
+      <div class="emp-list" id="empList">
+        <div class="shimmer" style="height:42px;border-radius:8px;margin-bottom:8px;"></div>
+        <div class="shimmer" style="height:42px;border-radius:8px;margin-bottom:8px;"></div>
+        <div class="shimmer" style="height:42px;border-radius:8px;"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Order status</span>
+        <span class="card-badge" id="statusTag">—</span>
+      </div>
+      <div class="donut-wrap">
+        <div class="donut-canvas-wrap">
+          <canvas id="statusChart" role="img" aria-label="Order status donut chart"></canvas>
+        </div>
+        <div class="donut-legend" id="statusLegend">
+          <div class="shimmer" style="height:12px;border-radius:4px;"></div>
+          <div class="shimmer" style="height:12px;border-radius:4px;margin-top:8px;"></div>
+          <div class="shimmer" style="height:12px;border-radius:4px;margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Office performance</span>
+        <span class="card-badge" id="officeTag">—</span>
+      </div>
+      <div class="bar-rows" id="officeBars">
+        <div class="shimmer" style="height:10px;"></div>
+        <div class="shimmer" style="height:10px;width:78%;"></div>
+        <div class="shimmer" style="height:10px;width:58%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product performance -->
+  <div class="label" style="margin-top:28px;">Product performance</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Top products by revenue</span>
+      <span class="card-badge" id="prodTag">—</span>
+    </div>
+    <table class="prod-table">
+      <thead><tr>
+        <th style="width:30px;">#</th>
+        <th>Product</th>
+        <th>Line</th>
+        <th style="text-align:right;">Units sold</th>
+        <th style="text-align:right;">Revenue</th>
+      </tr></thead>
+      <tbody id="prodBody">
+        <tr><td colspan="5"><div class="state-msg">Loading…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+<script>
+const BASE = 'http://127.0.0.1:5010';
+const EP = {
+  cities:       `${BASE}/sales/cities`,
+  products:     `${BASE}/sales/products`,
+  employees:    `${BASE}/sales/employee`,
+  offices:      `${BASE}/sales/offices`,
+  productlines: `${BASE}/sales/product_line`,
+  status:       `${BASE}/sales/status`,
+};
+
+// Palette
+const BLUE_SHADES  = ['#4f8ef7','#3d78e0','#2c62c9','#1b4eb3','#0a3a9c'];
+const AMBER_SHADES = ['#f5a623','#e0921a','#cc7f12','#b76c0b','#a35a05'];
+const STATUS_COLORS = {
+  'Shipped':'#3ecf8e','In Process':'#4f8ef7',
+  'Cancelled':'#f76f6f','On Hold':'#f5a623','Resolved':'#a78bfa'
+};
+const AVATAR_COLORS = [
+  {bg:'rgba(79,142,247,0.15)',c:'#4f8ef7'},
+  {bg:'rgba(245,166,35,0.15)',c:'#f5a623'},
+  {bg:'rgba(62,207,142,0.15)',c:'#3ecf8e'},
+  {bg:'rgba(167,139,250,0.15)',c:'#a78bfa'},
+  {bg:'rgba(247,111,111,0.15)',c:'#f76f6f'},
+];
+
+const peso     = v => '₱' + Number(v).toLocaleString('en-PH', { maximumFractionDigits: 0 });
+const initials = n => n.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+const pct      = (v, max) => Math.max(4, Math.round((v / max) * 100));
+
+async function load(key) {
+  const r = await fetch(EP[key]);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// KPIs
+function renderKPIs(cities, products, offices) {
+  const totalRev    = cities.reduce((s, c) => s + parseFloat(c.total_revenue), 0);
+  const totalOrders = cities.reduce((s, c) => s + parseInt(c.total_orders), 0);
+  const top = [...products].sort((a,b) => b.total_revenue - a.total_revenue)[0];
+  const topOffice = [...offices].sort((a,b) => b.total_revenue - a.total_revenue)[0];
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--amber);"></div>
+      <div class="kpi-label">Total revenue</div>
+      <div class="kpi-value">${peso(totalRev)}</div>
+      <div class="kpi-sub">${totalOrders} orders · ${cities.length} cities</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--blue);"></div>
+      <div class="kpi-label">Top product</div>
+      <div class="kpi-value" style="font-size:15px;line-height:1.3;">${top.product}</div>
+      <div class="kpi-sub">${peso(top.total_revenue)} · ${Number(top.total_orders).toLocaleString()} units</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--green);"></div>
+      <div class="kpi-label">Best office</div>
+      <div class="kpi-value" style="font-size:20px;">${topOffice.office_city}</div>
+      <div class="kpi-sub">${peso(topOffice.total_revenue)} · ${topOffice.total_orders} orders</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--amber);"></div>
+      <div class="kpi-label">Avg order value</div>
+      <div class="kpi-value">${peso(totalRev / totalOrders)}</div>
+      <div class="kpi-sub">across all cities</div>
+    </div>`;
+}
+
+// Product line bar chart
+function renderProductLines(data) {
+  const sorted = [...data].sort((a,b) => b.total_revenue - a.total_revenue);
+  document.getElementById('plTag').textContent = sorted.length + ' lines';
+  new Chart(document.getElementById('plChart'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(d => d.product_line),
+      datasets: [{
+        label: 'Revenue',
+        data: sorted.map(d => parseFloat(d.total_revenue)),
+        backgroundColor: BLUE_SHADES,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#7a7a90', font: { size: 11, family: 'Sora' } }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+          ticks: { color: '#7a7a90', font: { size: 10, family: 'JetBrains Mono' },
+            callback: v => '₱' + (v / 1000).toFixed(0) + 'K'
+          }
+        }
+      }
+    }
+  });
+}
+
+// City bars
+function renderCities(data) {
+  const sorted = [...data].sort((a,b) => b.total_revenue - a.total_revenue).slice(0, 8);
+  const max = parseFloat(sorted[0].total_revenue);
+  document.getElementById('cityTag').textContent = data.length + ' cities';
+  document.getElementById('cityBars').innerHTML = sorted.map((d, i) => `
+    <div class="bar-row">
+      <span class="bar-name">${d.city}</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${pct(d.total_revenue,max)}%;background:${BLUE_SHADES[Math.min(i,4)]};"></div>
+      </div>
+      <span class="bar-val">${peso(d.total_revenue)}</span>
+    </div>`).join('');
+}
+
+// Employees
+function renderEmployees(data) {
+  const sorted = [...data].sort((a,b) => b.total_revenue - a.total_revenue).slice(0, 5);
+  document.getElementById('empTag').textContent = data.length + ' reps';
+  document.getElementById('empList').innerHTML = sorted.map((emp, i) => {
+    const av = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    return `
+      <div class="emp-row">
+        <div class="emp-left">
+          <div class="avatar" style="background:${av.bg};color:${av.c};">${initials(emp.employee_name)}</div>
+          <div>
+            <div class="emp-name">${emp.employee_name}</div>
+            <div class="emp-meta">${emp.total_orders} orders · ${peso(emp.aov)} AOV</div>
+          </div>
+        </div>
+        <div class="emp-rev">${peso(emp.total_revenue)}</div>
+      </div>`;
+  }).join('');
+}
+
+// Status donut
+function renderStatus(data) {
+  document.getElementById('statusTag').textContent = data.length + ' statuses';
+  const labels = data.map(d => d.status);
+  const counts = data.map(d => parseInt(d.count));
+  const colors = labels.map(l => STATUS_COLORS[l] ?? '#3d3d52');
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: { legend: { display: false } }
+    }
+  });
+  document.getElementById('statusLegend').innerHTML = data.map((d, i) => `
+    <div class="legend-item">
+      <div class="legend-left">
+        <div class="legend-dot" style="background:${colors[i]};"></div>
+        <span>${d.status}</span>
+      </div>
+      <span class="legend-count">${d.count}</span>
+    </div>`).join('');
+}
+
+// Office bars
+function renderOffices(data) {
+  const sorted = [...data].sort((a,b) => b.total_revenue - a.total_revenue);
+  const max = parseFloat(sorted[0].total_revenue);
+  document.getElementById('officeTag').textContent = sorted.length + ' offices';
+  document.getElementById('officeBars').innerHTML = sorted.map((d, i) => `
+    <div class="bar-row">
+      <span class="bar-name">${d.office_city}</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${pct(d.total_revenue,max)}%;background:${AMBER_SHADES[Math.min(i,4)]};"></div>
+      </div>
+      <span class="bar-val">${peso(d.total_revenue)}</span>
+    </div>`).join('');
+}
+
+// Products table
+function renderProducts(data) {
+  const sorted = [...data].sort((a,b) => b.total_revenue - a.total_revenue);
+  document.getElementById('prodTag').textContent = sorted.length + ' products';
+  const rc = i => (['r1','r2','r3'][i] ?? 'rn');
+  document.getElementById('prodBody').innerHTML = sorted.map((p, i) => `
+    <tr>
+      <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
+      <td>${p.product}</td>
+      <td><span class="line-chip">—</span></td>
+      <td style="text-align:right;font-family:var(--mono);color:var(--text-2);">${Number(p.total_orders).toLocaleString()}</td>
+      <td>${peso(p.total_revenue)}</td>
+    </tr>`).join('');
+}
+
+// Init
+async function init() {
+  const safe = async (key, fn) => {
+    try { fn(await load(key)); } catch(e) { console.warn(`[${key}]`, e.message); }
+  };
+
+  const [cities, products, employees, offices] = await Promise.allSettled([
+    load('cities'), load('products'), load('employees'), load('offices')
+  ]);
+
+  if (cities.status==='fulfilled' && products.status==='fulfilled' && offices.status==='fulfilled')
+    renderKPIs(cities.value, products.value, offices.value);
+
+  if (cities.status    === 'fulfilled') renderCities(cities.value);
+  if (employees.status === 'fulfilled') renderEmployees(employees.value);
+  if (offices.status   === 'fulfilled') renderOffices(offices.value);
+  if (products.status  === 'fulfilled') renderProducts(products.value);
+
+  await safe('productlines', renderProductLines);
+  await safe('status',       renderStatus);
+}
+
+init();
+</script>
+</body>
+</html>
