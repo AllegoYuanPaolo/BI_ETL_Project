@@ -1,144 +1,197 @@
-from utils import dbOps
+from datetime import date
+from typing import Optional
+
+from sqlalchemy import extract, func, select, desc
+
 from models import dest_models as dst
-from sqlalchemy import select, desc, func
-import schemas.APIContracts as contract
+from schemas import APIContracts as contract
+from utils import dbOps
 
 
-def data_dump(dataList: list)->None:
-    for item in dataList:
-        print(item.model_dump())
+_stats = dbOps.get_session_factory('orderStatistics')
 
-_stats  = dbOps.get_session_factory('orderStatistics')
 
 def _exec(stmt):
-    """Run a SQLAlchemy statement, auto-close session."""
     session = _stats()
     try:
-        return session.execute(stmt).all()
-    except Exception:
-        session.rollback()
         return session.execute(stmt).all()
     finally:
         session.close()
 
 
+# ── filter helper ────────────────────────────────────────────────────────────
 
-def city_revenue()->list[contract.CityRevenue]:
+def _apply_date_filters(stmt, model, *,
+                        start_date: Optional[date] = None,
+                        end_date: Optional[date] = None,
+                        year: Optional[int] = None,
+                        quarter: Optional[int] = None,
+                        half: Optional[int] = None):
+    if start_date:
+        stmt = stmt.where(model.order_date >= start_date)
+    if end_date:
+        stmt = stmt.where(model.order_date <= end_date)
+    if year is not None:
+        stmt = stmt.where(extract('year', model.order_date) == year)
+    if quarter is not None:
+        stmt = stmt.where(extract('quarter', model.order_date) == quarter)
+    if half is not None:
+        stmt = stmt.where(extract('month', model.order_date).between((half - 1) * 6 + 1, half * 6))
+    return stmt
+
+
+# ── query functions ──────────────────────────────────────────────────────────
+
+def city_revenue(start_date: Optional[date] = None,
+                 end_date: Optional[date] = None,
+                 year: Optional[int] = None,
+                 quarter: Optional[int] = None,
+                 half: Optional[int] = None,
+                 city: Optional[str] = None) -> list[contract.CityRevenue]:
     stmt = (
         select(
-            dst.FactSales.total_revenue,
-            dst.FactSales.total_orders,
-            dst.DimSales.customer_city,
+            dst.DimCity.city_name,
+            func.sum(dst.FactSales.revenue).label("total_revenue"),
+            func.count(dst.FactSales.order_id).label("total_orders"),
         )
-        .join(dst.DimSales)
-        .group_by(dst.DimSales.customer_city)
-        .order_by(desc(dst.FactSales.total_revenue))
+        .join(dst.FactSales, dst.DimCity.city_id == dst.FactSales.city_id)
     )
-    results = _exec(stmt)
+    stmt = _apply_date_filters(stmt, dst.FactSales,
+                                start_date=start_date, end_date=end_date,
+                                year=year, quarter=quarter, half=half)
+    if city:
+        stmt = stmt.where(dst.DimCity.city_name == city)
+    stmt = stmt.group_by(dst.DimCity.city_name).order_by(desc("total_revenue"))
 
     return [
-        contract.CityRevenue(
-            city=row.customer_city,
-            total_revenue=row.total_revenue,
-            total_orders=row.total_orders
-        ) for row in results
+        contract.CityRevenue(city=r.city_name, total_revenue=float(r.total_revenue), total_orders=int(r.total_orders))
+        for r in _exec(stmt)
     ]
 
-def product_revenue()->list[contract.ProductRevenue]:
+
+def product_revenue(start_date: Optional[date] = None,
+                    end_date: Optional[date] = None,
+                    year: Optional[int] = None,
+                    quarter: Optional[int] = None,
+                    half: Optional[int] = None) -> list[contract.ProductRevenue]:
     stmt = (
         select(
-            dst.FactProductSales.total_revenue,
-            dst.FactProductSales.total_orders,
-            dst.DimProductSales.product_name
+            dst.DimProduct.product_name,
+            func.sum(dst.FactSales.revenue).label("total_revenue"),
+            func.count(dst.FactSales.order_id).label("total_orders"),
         )
-        .join(dst.DimProductSales)
-        .group_by(dst.DimProductSales.product_name)
-        .order_by(desc(dst.FactProductSales.total_revenue))
+        .join(dst.FactSales, dst.DimProduct.product_id == dst.FactSales.product_id)
     )
-
-    results = _exec(stmt)
+    stmt = _apply_date_filters(stmt, dst.FactSales,
+                                start_date=start_date, end_date=end_date,
+                                year=year, quarter=quarter, half=half)
+    stmt = stmt.group_by(dst.DimProduct.product_name).order_by(desc("total_revenue"))
 
     return [
-        contract.ProductRevenue(
-            product=r.product_name,
-            total_orders=r.total_orders,
-            total_revenue=r.total_revenue
-        ) for r in results
+        contract.ProductRevenue(product=r.product_name, total_revenue=float(r.total_revenue), total_orders=int(r.total_orders))
+        for r in _exec(stmt)
     ]
 
-def office_revenue()->list[contract.OfficeRevenue]:
+
+def office_revenue(start_date: Optional[date] = None,
+                   end_date: Optional[date] = None,
+                   year: Optional[int] = None,
+                   quarter: Optional[int] = None,
+                   half: Optional[int] = None,
+                   city: Optional[str] = None,
+                   office_city: Optional[str] = None) -> list[contract.OfficeRevenue]:
     stmt = (
         select(
-            dst.FactOfficeSales.total_revenue,
-            dst.FactOfficeSales.total_orders,
-            dst.DimOfficeSales.office_city
+            dst.DimOffice.office_city,
+            func.sum(dst.FactSales.revenue).label("total_revenue"),
+            func.count(dst.FactSales.order_id).label("total_orders"),
         )
-        .join(dst.DimOfficeSales)
-        .group_by(dst.DimOfficeSales.office_city)
-        .order_by(desc(dst.FactOfficeSales.total_revenue))
+        .join(dst.FactSales, dst.DimOffice.office_id == dst.FactSales.office_id)
     )
-
-    results = _exec(stmt)
+    stmt = _apply_date_filters(stmt, dst.FactSales,
+                                start_date=start_date, end_date=end_date,
+                                year=year, quarter=quarter, half=half)
+    if city:
+        stmt = stmt.where(dst.DimOffice.office_city == city)
+    if office_city:
+        stmt = stmt.where(dst.DimOffice.office_city == office_city)
+    stmt = stmt.group_by(dst.DimOffice.office_city).order_by(desc("total_revenue"))
 
     return [
-        contract.OfficeRevenue(
-            office_city=r.office_city,
-            total_orders=r.total_orders,
-            total_revenue=r.total_revenue
-        ) for r in results
+        contract.OfficeRevenue(office_city=r.office_city, total_revenue=float(r.total_revenue), total_orders=int(r.total_orders))
+        for r in _exec(stmt)
     ]
 
-def employee_revenue()->list[contract.EmployeeRevenue]:
+
+def employee_revenue(start_date: Optional[date] = None,
+                     end_date: Optional[date] = None,
+                     year: Optional[int] = None,
+                     quarter: Optional[int] = None,
+                     half: Optional[int] = None,
+                     city: Optional[str] = None,
+                     office_city: Optional[str] = None) -> list[contract.EmployeeRevenue]:
     stmt = (
         select(
-            dst.FactEmployeeRevenue.total_orders,
-            dst.FactEmployeeRevenue.total_revenue,
-            dst.DimEmployeeRevenue.employee_name,
-            dst.DimEmployeeRevenue.employee_number,
-            dst.DimEmployeeRevenue.office_city
+            dst.DimSalesRep.sales_rep_id,
+            dst.DimSalesRep.sales_rep_name,
+            func.sum(dst.FactSales.revenue).label("total_revenue"),
+            func.count(dst.FactSales.order_id).label("total_orders"),
+            dst.DimOffice.office_city,
         )
-        .join(dst.DimEmployeeRevenue)
-        .group_by(dst.DimEmployeeRevenue.employee_number)
-        .order_by(desc(dst.FactEmployeeRevenue.total_revenue))
+        .join(dst.FactSales, dst.DimSalesRep.sales_rep_id == dst.FactSales.sales_rep_id)
+        .join(dst.DimOffice, dst.DimOffice.office_id == dst.FactSales.office_id)
     )
-
-    results = _exec(stmt)
+    stmt = _apply_date_filters(stmt, dst.FactSales,
+                                start_date=start_date, end_date=end_date,
+                                year=year, quarter=quarter, half=half)
+    if city:
+        stmt = stmt.where(dst.DimOffice.office_city == city)
+    if office_city:
+        stmt = stmt.where(dst.DimOffice.office_city == office_city)
+    stmt = stmt.group_by(dst.DimSalesRep.sales_rep_id).order_by(desc("total_revenue"))
 
     return [
         contract.EmployeeRevenue(
-            employee_number=r.employee_number,
-            employee_name=r.employee_name,
-            total_orders=r.total_orders,
-            total_revenue=r.total_revenue,
-            office_city=r.office_city
-        ) for r  in results
-    ]
-    ...
-
-def productline_revenue()->list[contract.ProductLineRevenue]:
-    stmt = (
-        select (
-            dst.FactProductLineRevenue.total_orders,
-            dst.FactProductLineRevenue.total_revenue,
-            dst.FactProductLineRevenue.product_line,
-            dst.DimProductLineRevenue.product_line_description,
+            employee_number=int(r.sales_rep_id),
+            employee_name=r.sales_rep_name,
+            total_revenue=float(r.total_revenue),
+            total_orders=int(r.total_orders),
+            office_city=r.office_city,
         )
-        .join(dst.DimProductLineRevenue)
-        .group_by(dst.FactProductLineRevenue.product_line)
-        .order_by(desc(dst.FactProductLineRevenue.total_revenue))
+        for r in _exec(stmt)
+    ]
+
+
+def productline_revenue(start_date: Optional[date] = None,
+                        end_date: Optional[date] = None,
+                        year: Optional[int] = None,
+                        quarter: Optional[int] = None,
+                        half: Optional[int] = None) -> list[contract.ProductLineRevenue]:
+    stmt = (
+        select(
+            dst.DimProductLine.product_line,
+            dst.DimProductLine.product_line,
+            func.sum(dst.FactSales.revenue).label("total_revenue"),
+            func.count(dst.FactSales.order_id).label("total_orders"),
+        )
+        .join(dst.FactSales, dst.DimProductLine.product_line_id == dst.FactSales.product_line_id)
     )
-    results = _exec(stmt)
+    stmt = _apply_date_filters(stmt, dst.FactSales,
+                                start_date=start_date, end_date=end_date,
+                                year=year, quarter=quarter, half=half)
+    stmt = stmt.group_by(dst.DimProductLine.product_line).order_by(desc("total_revenue"))
 
     return [
         contract.ProductLineRevenue(
             product_line=r.product_line,
-            description=r.product_line_description,
-            total_revenue=r.total_revenue,
-            total_orders=r.total_orders
-        ) for r in results
+            description="",
+            total_revenue=float(r.total_revenue),
+            total_orders=int(r.total_orders),
+        )
+        for r in _exec(stmt)
     ]
 
 
 if __name__ == "__main__":
-    data_dump(city_revenue())
-    ...
+    for c in city_revenue():
+        print(c.model_dump())

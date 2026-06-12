@@ -1,203 +1,175 @@
-from utils.dbOps import get_db_connection
-from etl import ext_trans as src
-from models import dest_models as dst
-from utils.logger import get_logger
+from typing import Dict, Iterable, List, Optional
 
 from sqlalchemy import text
-from sqlalchemy.orm import InstrumentedAttribute, Session
-from typing import Type
+
+from etl import ext_trans as src
+from models import dest_models as dst
+from utils.dbOps import get_db_connection
+from utils.logger import get_logger
 
 log = get_logger(__name__)
 
-def clear_tables_all(session: Session):
+
+def _clear_tables(conn):
     log.info("Clearing all destination tables...")
-    session.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
-    tables = ['dim_employee_revenue', 'dim_office_sales', 
-              'dim_product_line_revenue', 'dim_product_sales', 
-              'dim_sales', 'fact_employee_revenue', 
-              'fact_office_sales', 
-              'fact_product_line_revenue', 'fact_product_sales', 
-              'fact_sales'
-            ]
-    
+    conn.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
+    tables = [
+        'fact_sales', 'dim_product', 'dim_product_line',
+        'dim_sales_rep', 'dim_office', 'dim_city',
+    ]
     for table in tables:
-        session.execute(text(f"TRUNCATE TABLE {table}"))
-    
-    session.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
-    session.commit()
-    log.info("All tables cleared successfully.")
-    
-def clear_table_one(conn: Session, fact_table: Type[dst.Base], dim_table: Type[dst.Base]):
-    fact_name = fact_table.__tablename__
-    dim_name = dim_table.__tablename__
-
-    try:
-        log.info(f"Clearing tables: {fact_name}, {dim_name}")
-        conn.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
-
-        conn.execute(text(f"TRUNCATE TABLE {fact_name}"))
-        conn.execute(text(f"TRUNCATE TABLE {dim_name}"))
-
-        conn.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
-        
-        conn.commit()
-        log.info(f"Successfully truncated {fact_name} and {dim_name}")
-    except Exception as err:
-        conn.rollback()
-        log.error(f"Error clearing tables: {err}")
+        conn.execute(text(f"DELETE FROM {table}"))
+    conn.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+    log.info("All tables cleared.")
 
 
-#                   === LOAD FUNCS ===
-dest_conn = get_db_connection('orderStatistics')
+def _unique(values: Iterable[str]) -> List[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for v in values:
+        if v not in seen:
+            seen.add(v)
+            result.append(v)
+    return result
 
-def load_city_revenue():
-    try:
-        log.info("Starting City Revenue Load...")
-        clear_table_one(dest_conn, dst.FactSales, dst.DimSales)
-        data = src.get_cities_revenue()
-        
-        for item in data.keys():
-            dimRow = dst.DimSales(
-                customer_city=item
-            )
-            dest_conn.add(dimRow)
-            dest_conn.flush()
 
-            loc_id = dimRow.location_id
+def _load_dim_city(conn, data: List[dict]) -> Dict[str, int]:
+    cities = _unique(row['city_name'] for row in data if row['city_name'])
+    lookup: Dict[str, int] = {}
+    for name in cities:
+        row = dst.DimCity(city_name=name)
+        conn.add(row)
+        conn.flush()
+        lookup[name] = row.city_id
+    log.info(f"Loaded {len(cities)} cities.")
+    return lookup
 
-            factRow = dst.FactSales(
-                    location_id=loc_id,
-                    total_revenue=data[item].get('total_revenue'),
-                    total_orders=data[item].get('total_orders')
-            )
-            dest_conn.add(factRow)
-        
-        dest_conn.commit()
-        log.info(f"City Revenue Load complete. Loaded {len(data)} records.")
-    except Exception as e:
-        dest_conn.rollback()
-        log.error(f"Failed to load city revenue: {e}")
 
-def load_product_revenue():
-    try:
-        log.info("Starting Product Revenue Load...")
-        clear_table_one(dest_conn, dst.FactProductSales, dst.DimProductSales)
-        data = src.get_product_revenue()
+def _load_dim_office(conn, data: List[dict]) -> Dict[str, int]:
+    offices = _unique(row['office_city'] for row in data if row['office_city'])
+    lookup: Dict[str, int] = {}
+    for city in offices:
+        row = dst.DimOffice(office_city=city)
+        conn.add(row)
+        conn.flush()
+        lookup[city] = row.office_id
+    log.info(f"Loaded {len(offices)} offices.")
+    return lookup
 
-        for item in data.keys():
-            dimRow = dst.DimProductSales(
-                product_code=data[item].get('product_code'),
-                product_name=item
-            )
 
-            dest_conn.add(dimRow)
+def _load_dim_sales_rep(conn, data: List[dict]) -> Dict[str, int]:
+    reps = _unique(row['sales_rep_name'] for row in data if row['sales_rep_name'])
+    lookup: Dict[str, int] = {}
+    for name in reps:
+        row = dst.DimSalesRep(sales_rep_name=name)
+        conn.add(row)
+        conn.flush()
+        lookup[name] = row.sales_rep_id
+    log.info(f"Loaded {len(reps)} sales reps.")
+    return lookup
 
-            factRow = dst.FactProductSales(
-                product_code = data[item].get('product_code'),
-                total_revenue=data[item].get('total_revenue'),
-                total_orders=data[item].get('total_orders')
-            )
 
-            dest_conn.add(factRow)
-        
-        dest_conn.commit()
-        log.info(f"Product Revenue Load complete. Loaded {len(data)} records.")
-    except Exception as e:
-        dest_conn.rollback()
-        log.error(f"Failed to load product revenue: {e}")
+def _load_dim_product_line(conn, data: List[dict]) -> Dict[str, int]:
+    lines = _unique(row['product_line'] for row in data if row['product_line'])
+    lookup: Dict[str, int] = {}
+    for name in lines:
+        row = dst.DimProductLine(product_line=name)
+        conn.add(row)
+        conn.flush()
+        lookup[name] = row.product_line_id
+    log.info(f"Loaded {len(lines)} product lines.")
+    return lookup
 
-def load_office_revenue():
-    try:
-        log.info("Starting Office Revenue Load...")
-        clear_table_one(dest_conn, dst.FactOfficeSales, dst.DimOfficeSales)
-        data = src.get_office_revenue()
-        
-        for item in data.keys():
-            dimRow = dst.DimOfficeSales(
-                office_code=data[item].get('office_code'),
-                office_city=item
-            )
 
-            dest_conn.add(dimRow)
+def _load_dim_product(conn, data: List[dict], pl_lookup: Dict[str, int]) -> Dict[str, int]:
+    products = _unique(row['product_name'] for row in data if row['product_name'])
+    product_to_pl = {r['product_name']: r['product_line'] for r in data}
+    lookup: Dict[str, int] = {}
+    for name in products:
+        pl_name = product_to_pl.get(name)
+        pl_id = pl_lookup.get(pl_name) if pl_name else None
+        if pl_id is None:
+            log.warning(f"Product '{name}' has no matching product_line, skipping.")
+            continue
+        row = dst.DimProduct(product_name=name, product_line_id=pl_id)
+        conn.add(row)
+        conn.flush()
+        lookup[name] = row.product_id
+    log.info(f"Loaded {len(lookup)} products.")
+    return lookup
 
-            factRow = dst.FactOfficeSales(
-                office_code=data[item].get('office_code'),
-                total_revenue=data[item].get('total_revenue'),
-                total_orders=data[item].get('total_orders')
-            )
 
-            dest_conn.add(factRow)
+def _load_fact_sales(
+    conn,
+    data: List[dict],
+    city_lookup: Dict[str, int],
+    office_lookup: Dict[str, int],
+    rep_lookup: Dict[str, int],
+    product_lookup: Dict[str, int],
+    pl_lookup: Dict[str, int],
+):
+    count = 0
+    for row in data:
+        city_id = city_lookup.get(row['city_name'])
+        office_id = office_lookup.get(row['office_city'])
+        rep_id = rep_lookup.get(row['sales_rep_name'])
+        prod_id = product_lookup.get(row['product_name'])
+        pl_id = pl_lookup.get(row['product_line'])
 
-        dest_conn.commit()
-        log.info(f"Office Revenue Load complete. Loaded {len(data)} records.")
-    except Exception as e:
-        dest_conn.rollback()
-        log.error(f"Failed to load office revenue: {e}")
+        missing = []
+        if city_id is None: missing.append('city')
+        if office_id is None: missing.append('office')
+        if rep_id is None: missing.append('sales_rep')
+        if prod_id is None: missing.append('product')
+        if pl_id is None: missing.append('product_line')
+        if missing:
+            log.warning(f"Skipping order {row['order_id']}: missing lookups for {', '.join(missing)}")
+            continue
 
-def load_employee_revenue():
-    try:
-        log.info("Starting Employee Revenue Load...")
-        clear_table_one(dest_conn, dst.FactEmployeeRevenue, dst.DimEmployeeRevenue)
-        data = src.get_employee_revenue()
-        
-        for item in data.keys():
-            dimRow = dst.DimEmployeeRevenue(
-                employee_number=item,
-                employee_name=data[item].get('employee_name'),
-                office_city=data[item].get('office_city')
-            )
-            dest_conn.add(dimRow)
+        fact = dst.FactSales(
+            order_id=row['order_id'],
+            order_date=row['order_date'],
+            city_id=city_id,
+            office_id=office_id,
+            sales_rep_id=rep_id,
+            product_id=prod_id,
+            product_line_id=pl_id,
+            revenue=row['revenue'],
+            quantity=row['quantity'],
+        )
+        conn.add(fact)
+        count += 1
 
-            factRow = dst.FactEmployeeRevenue(
-                employee_number=item,
-                office_code=data[item].get('office_code'),
-                total_revenue=data[item].get('total_revenue'),
-                total_orders=data[item].get('total_orders')
-            )
+    conn.flush()
+    log.info(f"Loaded {count} fact rows.")
 
-            dest_conn.add(factRow)
-
-        dest_conn.commit()
-        log.info(f"Employee Revenue Load complete. Loaded {len(data)} records.")
-    except Exception as e:
-        dest_conn.rollback()
-        log.error(f"Failed to load employee revenue: {e}")
-
-def load_prodLine_revenue():
-    try:
-        log.info("Starting Product Line Revenue Load...")
-        clear_table_one(dest_conn, dst.FactProductLineRevenue, dst.DimProductLineRevenue)
-        data = src.get_product_line_rev()
-
-        for item in data.keys():
-            dimRow = dst.DimProductLineRevenue(
-                product_line=item,
-                product_line_description=data[item].get('description', 'No description available')
-            )
-
-            dest_conn.add(dimRow)
-
-            factRow = dst.FactProductLineRevenue(
-                product_line=item,
-                total_revenue=data[item].get('total_revenue'),
-                total_orders=data[item].get('total_sold')
-            )
-
-            dest_conn.add(factRow)
-        
-        dest_conn.commit()
-        log.info(f"Product Line Revenue Load complete. Loaded {len(data)} records.")
-    except Exception as e:
-        dest_conn.rollback()
-        log.error(f"Failed to load product line revenue: {e}")
 
 def load_data():
-    load_city_revenue()
-    load_product_revenue()
-    load_office_revenue()
-    load_employee_revenue()
-    load_prodLine_revenue()
+    conn = get_db_connection('orderStatistics')
+    try:
+        data = src.get_sales_data()
+        if not data:
+            log.warning("No data extracted, nothing to load.")
+            return
 
+        _clear_tables(conn)
+
+        city_lookup = _load_dim_city(conn, data)
+        office_lookup = _load_dim_office(conn, data)
+        rep_lookup = _load_dim_sales_rep(conn, data)
+        pl_lookup = _load_dim_product_line(conn, data)
+        product_lookup = _load_dim_product(conn, data, pl_lookup)
+
+        _load_fact_sales(conn, data, city_lookup, office_lookup, rep_lookup, product_lookup, pl_lookup)
+
+        conn.commit()
+        log.info("Data load complete.")
+    except Exception as e:
+        conn.rollback()
+        log.error(f"Load failed: {e}")
+        raise
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

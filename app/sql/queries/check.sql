@@ -1,22 +1,9 @@
--- select
---     pl.productLine,
---     count(od.productCode) as total_orders
--- FROM productLines as pl
--- JOIN products as p
---     ON pl.productLine = p.productLine
--- JOIN orderDetails as od
---     ON p.productCode = od.productCode
--- GROUP BY pl.productLine;
-
-
-select sum(total_orders)
-FROM (
-    select
-        count(od.productCode) as total_orders
-    FROM productLines as pl
-    JOIN products as p
-        ON pl.productLine = p.productLine
-    JOIN orderDetails as od
-        ON p.productCode = od.productCode
-    GROUP BY pl.productLine
-) as ord_count;
+SELECT 
+    o.orderDate, 
+    c.city, 
+    SUM(o.total_Price) as revenue,
+    COUNT(DISTINCT o.orderNumber) as sales
+FROM customers as c
+    JOIN orders as o
+    ON o.customerNumber = c.customerNumber
+GROUP BY c.city, o.orderDate

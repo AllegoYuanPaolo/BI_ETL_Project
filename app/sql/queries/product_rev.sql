@@ -1,4 +1,6 @@
 SELECT 
+    o.orderDate,
+    c.city,
     p.productName, 
     p.msrp,
     sum(od.quantityOrdered) as items_sold,
@@ -11,7 +13,13 @@ FROM products p
     JOIN orders o
     ON o.orderNumber = od.orderNumber
 
-GROUP BY p.productName
+    JOIN customers c
+    ON o.customerNumber = c.customerNumber
+
+WHERE o.orderDate = '2025-09-16'
+
+GROUP BY p.productName, o.orderDate
+
 ORDER BY total_item_revenue DESC;
 
 

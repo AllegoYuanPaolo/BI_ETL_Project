@@ -156,3 +156,7 @@ class Orderdetails(Base):
 
     orders: Mapped['Orders'] = relationship('Orders', back_populates='orderdetails')
     products: Mapped['Products'] = relationship('Products', back_populates='orderdetails')
+
+
+
+
