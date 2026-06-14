@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0c0c0f;
+      --surface:  #111115;
+      --surface2: #18181e;
+      --border:   rgba(255,255,255,0.06);
+      --border2:  rgba(255,255,255,0.10);
+      --amber:    #f5a623;
+      --amber2:   rgba(245,166,35,0.12);
+      --blue:     #4f8ef7;
+      --blue2:    rgba(79,142,247,0.12);
+      --green:    #3ecf8e;
+      --green2:   rgba(62,207,142,0.12);
+      --rose:     #f76f6f;
+      --text-1:   #f2f2f5;
+      --text-2:   #7a7a90;
+      --text-3:   #3d3d52;
+      --mono:     'JetBrains Mono', monospace;
+      --sans:     'Sora', sans-serif;
+      --r-sm: 8px; --r-md: 12px; --r-lg: 16px;
+    }
+
+    html, body {
+      background: var(--bg); color: var(--text-1);
+      font-family: var(--sans); font-size: 13px;
+      line-height: 1.5; min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .shell { max-width: 1260px; margin: 0 auto; padding: 36px 32px 72px; }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-title { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+
+    .btn-refresh {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      color: var(--text-1); border-radius: 10px;
+      padding: 8px 16px; font-size: 12px; font-family: var(--sans);
+      font-weight: 500; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-refresh:hover { border-color: var(--green); color: var(--green); }
+    .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-refresh svg { transition: transform 0.6s; }
+    .btn-refresh.spinning svg { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .filter-bar {
+      display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 16px 20px;
+      margin-bottom: 28px;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 5px; }
+    .filter-label {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-3);
+    }
+    .filter-select, .filter-input {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text-1); border-radius: var(--r-sm);
+      padding: 7px 10px; font-size: 12px; font-family: var(--sans);
+      outline: none; transition: border-color 0.2s;
+      min-width: 110px;
+    }
+    .filter-select:focus, .filter-input:focus { border-color: var(--blue); }
+    .filter-input { min-width: 130px; }
+    .filter-divider {
+      width: 1px; height: 36px; background: var(--border);
+      align-self: flex-end; margin: 0 4px;
+    }
+    .btn-apply {
+      background: var(--blue); color: #fff;
+      border: none; border-radius: var(--r-sm);
+      padding: 8px 18px; font-size: 12px; font-family: var(--sans);
+      font-weight: 600; cursor: pointer; align-self: flex-end;
+      transition: opacity 0.2s;
+    }
+    .btn-apply:hover { opacity: 0.85; }
+    .btn-clear {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--border); border-radius: var(--r-sm);
+      padding: 8px 14px; font-size: 12px; font-family: var(--sans);
+      cursor: pointer; align-self: flex-end;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-clear:hover { border-color: var(--rose); color: var(--rose); }
+
+    .filter-pills {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-bottom: 20px; min-height: 0;
+    }
+    .pill {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--blue2); border: 1px solid rgba(79,142,247,0.25);
+      color: var(--blue); border-radius: 99px;
+      padding: 3px 10px; font-size: 10px; font-weight: 500;
+    }
+    .pill-x { cursor: pointer; opacity: 0.7; font-size: 12px; }
+    .pill-x:hover { opacity: 1; }
+
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: var(--r-md); padding: 12px 18px;
+      font-size: 12px; color: var(--text-1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      transform: translateY(80px); opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      z-index: 999; display: flex; align-items: center; gap: 10px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+    .label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-3); margin-bottom: 14px;
+    }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 32px; }
+    .kpi {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 22px 20px 18px;
+      position: relative; overflow: hidden; cursor: default;
+      transition: border-color 0.25s, transform 0.2s;
+    }
+    .kpi:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .kpi-accent { position: absolute; top: 0; left: 20px; width: 32px; height: 2px; border-radius: 0 0 2px 2px; }
+    .kpi-label { font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); margin-bottom: 10px; }
+    .kpi-value { font-size: 24px; font-weight: 700; letter-spacing: -0.8px; line-height: 1; color: var(--text-1); }
+    .kpi-sub { font-size: 11px; color: var(--text-3); margin-top: 8px; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 22px 22px 20px; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .card-title { font-size: 13px; font-weight: 500; color: var(--text-1); }
+    .card-badge {
+      font-size: 10px; font-weight: 500; color: var(--text-3);
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 3px 9px; letter-spacing: 0.03em;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .mb-10 { margin-bottom: 10px; }
+    .mb-32 { margin-bottom: 32px; }
+
+    .bar-rows { display: flex; flex-direction: column; gap: 13px; }
+    .bar-row { display: flex; align-items: center; gap: 12px; }
+    .bar-name { width: 90px; flex-shrink: 0; font-size: 11px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { flex: 1; height: 4px; background: rgba(255,255,255,0.05); border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 99px; transition: width 0.9s cubic-bezier(0.4,0,0.2,1); }
+    .bar-val { width: 70px; text-align: right; flex-shrink: 0; font-size: 11px; font-family: var(--mono); color: var(--text-2); }
+
+    .emp-list { display: flex; flex-direction: column; }
+    .emp-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); }
+    .emp-row:last-child { border-bottom: none; }
+    .emp-left { display: flex; align-items: center; gap: 11px; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+    .emp-name { font-size: 12px; font-weight: 500; }
+    .emp-meta { font-size: 10px; color: var(--text-3); margin-top: 1px; }
+    .emp-rev { font-size: 12px; font-weight: 600; font-family: var(--mono); color: var(--amber); }
+
+    .prod-table { width: 100%; border-collapse: collapse; }
+    .prod-table th { font-size: 10px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; text-align: left; padding: 0 0 12px; border-bottom: 1px solid var(--border); }
+    .prod-table th:last-child { text-align: right; }
+    .prod-table td { padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: middle; }
+    .prod-table tr:last-child td { border-bottom: none; }
+    .prod-table td:last-child { text-align: right; font-family: var(--mono); color: var(--amber); }
+    .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 4px; font-size: 9px; font-weight: 700; margin-right: 10px; }
+    .r1 { background: rgba(245,166,35,0.15); color: var(--amber); }
+    .r2 { background: rgba(79,142,247,0.12); color: var(--blue); }
+    .r3 { background: rgba(62,207,142,0.12); color: var(--green); }
+    .rn { background: var(--surface2); color: var(--text-3); }
+
+    .shimmer {
+      background: linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);
+      background-size: 200% 100%; animation: sh 1.5s infinite; border-radius: var(--r-sm);
+    }
+    @keyframes sh { from{background-position:200% 0} to{background-position:-200% 0} }
+    .state-msg { display:flex; align-items:center; justify-content:center; height:70px; font-size:12px; color:var(--text-3); }
+
+    .pl-desc { font-size: 10px; color: var(--text-3); margin-top: 4px; font-style: italic; }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <span class="header-title">Dashboard</span>
+    <button class="btn-refresh" id="btnRefresh" onclick="triggerRefresh()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+      </svg>
+      Refresh Data
+    </button>
+  </header>
+
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Year</span>
+      <select class="filter-select" id="fYear">
+        <option value="">All years</option>
+        <option value="2023">2023</option>
+        <option value="2024">2024</option>
+        <option value="2025">2025</option>
+        <option value="2026">2026</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Quarter</span>
+      <select class="filter-select" id="fQuarter">
+        <option value="">All quarters</option>
+        <option value="1">Q1</option>
+        <option value="2">Q2</option>
+        <option value="3">Q3</option>
+        <option value="4">Q4</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Half</span>
+      <select class="filter-select" id="fHalf">
+        <option value="">All</option>
+        <option value="1">H1 (Jan–Jun)</option>
+        <option value="2">H2 (Jul–Dec)</option>
+      </select>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group">
+      <span class="filter-label">Start date</span>
+      <input type="date" class="filter-input" id="fStartDate" />
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">End date</span>
+      <input type="date" class="filter-input" id="fEndDate" />
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group">
+      <span class="filter-label">City</span>
+      <select class="filter-select" id="fCity">
+        <option value="">All cities</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Office city</span>
+      <select class="filter-select" id="fOfficeCity">
+        <option value="">All offices</option>
+      </select>
+    </div>
+    <div class="filter-divider"></div>
+    <button class="btn-apply" onclick="applyFilters()">Apply</button>
+    <button class="btn-clear" onclick="clearFilters()">Clear</button>
+  </div>
+
+  <div class="filter-pills" id="filterPills"></div>
+
+  <div class="label">Overview</div>
+  <div class="kpi-grid mb-32" id="kpiGrid">
+    <div class="kpi shimmer" style="height:108px;"></div>
+    <div class="kpi shimmer" style="height:108px;"></div>
+    <div class="kpi shimmer" style="height:108px;"></div>
+    <div class="kpi shimmer" style="height:108px;"></div>
+  </div>
+
+  <div class="label">Revenue breakdown</div>
+  <div class="grid-2 mb-10">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">By product line</span>
+        <span class="card-badge" id="plTag">—</span>
+      </div>
+      <div style="position:relative;width:100%;height:200px;">
+        <canvas id="plChart" role="img" aria-label="Revenue by product line"></canvas>
+      </div>
+      <div id="plDescriptions" style="margin-top:14px;display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">By customer city</span>
+        <span class="card-badge" id="cityTag">—</span>
+      </div>
+      <div class="bar-rows" id="cityBars">
+        <div class="shimmer" style="height:10px;"></div>
+        <div class="shimmer" style="height:10px;width:80%;"></div>
+        <div class="shimmer" style="height:10px;width:65%;"></div>
+        <div class="shimmer" style="height:10px;width:50%;"></div>
+        <div class="shimmer" style="height:10px;width:38%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="label" style="margin-top:28px;">People & operations</div>
+  <div class="grid-2 mb-10">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Top employees</span>
+        <span class="card-badge" id="empTag">—</span>
+      </div>
+      <div class="emp-list" id="empList">
+        <div class="shimmer" style="height:42px;border-radius:8px;margin-bottom:8px;"></div>
+        <div class="shimmer" style="height:42px;border-radius:8px;margin-bottom:8px;"></div>
+        <div class="shimmer" style="height:42px;border-radius:8px;"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Office performance</span>
+        <span class="card-badge" id="officeTag">—</span>
+      </div>
+      <div class="bar-rows" id="officeBars">
+        <div class="shimmer" style="height:10px;"></div>
+        <div class="shimmer" style="height:10px;width:78%;"></div>
+        <div class="shimmer" style="height:10px;width:58%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="label" style="margin-top:28px;">Product performance</div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Top products by revenue</span>
+      <span class="card-badge" id="prodTag">—</span>
+    </div>
+    <table class="prod-table">
+      <thead><tr>
+        <th style="width:30px;">#</th>
+        <th>Product</th>
+        <th style="text-align:right;">Units sold</th>
+        <th style="text-align:right;">Revenue</th>
+      </tr></thead>
+      <tbody id="prodBody">
+        <tr><td colspan="4"><div class="state-msg">Loading…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-dot" id="toastDot"></div>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+const BASE = 'http://127.0.0.1:5010';
+
+let activeFilters = {};
+
+function buildQuery(extra = {}) {
+  const params = { ...activeFilters, ...extra };
+  const qs = Object.entries(params).filter(([,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  return qs ? '?' + qs : '';
+}
+
+async function load(path, extra = {}) {
+  const r = await fetch(BASE + path + buildQuery(extra));
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+function showToast(msg, color = '#3ecf8e') {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastDot').style.background = color;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function triggerRefresh() {
+  const btn = document.getElementById('btnRefresh');
+  btn.disabled = true;
+  btn.classList.add('spinning');
+  btn.querySelector('span') && (btn.querySelector('span').textContent = 'Refreshing…');
+  try {
+    const res = await fetch(`${BASE}/etl/refresh`);
+    const data = await res.json();
+    if (data.status === 'OK') {
+      showToast('ETL refresh complete! Reloading data…', '#3ecf8e');
+      setTimeout(() => loadAll(), 1000);
+    } else {
+      showToast('ETL error: ' + (data.message || 'Unknown error'), '#f76f6f');
+    }
+  } catch(e) {
+    showToast('Could not reach ETL endpoint', '#f76f6f');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('spinning');
+  }
+}
+
+function applyFilters() {
+  activeFilters = {
+    year:       document.getElementById('fYear').value,
+    quarter:    document.getElementById('fQuarter').value,
+    half:       document.getElementById('fHalf').value,
+    start_date: document.getElementById('fStartDate').value,
+    end_date:   document.getElementById('fEndDate').value,
+    city:       document.getElementById('fCity').value,
+    office_city:document.getElementById('fOfficeCity').value,
+  };
+  renderPills();
+  loadAll();
+}
+
+function clearFilters() {
+  ['fYear','fQuarter','fHalf','fCity','fOfficeCity'].forEach(id => document.getElementById(id).value = '');
+  ['fStartDate','fEndDate'].forEach(id => document.getElementById(id).value = '');
+  activeFilters = {};
+  renderPills();
+  loadAll();
+}
+
+function removePill(key) {
+  delete activeFilters[key];
+  const el = document.getElementById('f' + key.charAt(0).toUpperCase() + key.slice(1).replace('_c','C').replace('_d','D'));
+  if (el) el.value = '';
+  renderPills();
+  loadAll();
+}
+
+const PILL_LABELS = { year:'Year', quarter:'Quarter', half:'Half', start_date:'From', end_date:'To', city:'City', office_city:'Office' };
+
+function renderPills() {
+  const container = document.getElementById('filterPills');
+  const active = Object.entries(activeFilters).filter(([,v]) => v);
+  container.innerHTML = active.map(([k,v]) => `
+    <div class="pill">
+      <span>${PILL_LABELS[k] || k}: <strong>${v}</strong></span>
+      <span class="pill-x" onclick="removePill('${k}')">×</span>
+    </div>`).join('');
+}
+
+function populateCityDropdown(cities) {
+  const sel = document.getElementById('fCity');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All cities</option>' +
+    [...cities].sort((a,b) => a.city.localeCompare(b.city))
+      .map(c => `<option value="${c.city}" ${c.city===cur?'selected':''}>${c.city}</option>`).join('');
+}
+
+function populateOfficeDropdown(offices) {
+  const sel = document.getElementById('fOfficeCity');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All offices</option>' +
+    [...offices].sort((a,b) => a.office_city.localeCompare(b.office_city))
+      .map(o => `<option value="${o.office_city}" ${o.office_city===cur?'selected':''}>${o.office_city}</option>`).join('');
+}
+
+const BLUE_SHADES  = ['#4f8ef7','#3d78e0','#2c62c9','#1b4eb3','#0a3a9c'];
+const AMBER_SHADES = ['#f5a623','#e0921a','#cc7f12','#b76c0b','#a35a05'];
+const AVATAR_COLORS = [
+  {bg:'rgba(79,142,247,0.15)',c:'#4f8ef7'},
+  {bg:'rgba(245,166,35,0.15)',c:'#f5a623'},
+  {bg:'rgba(62,207,142,0.15)',c:'#3ecf8e'},
+  {bg:'rgba(167,139,250,0.15)',c:'#a78bfa'},
+  {bg:'rgba(247,111,111,0.15)',c:'#f76f6f'},
+];
+
+const peso     = v => '₱' + Number(v).toLocaleString('en-PH', { maximumFractionDigits: 0 });
+const initials = n => n.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+const pct      = (v, max) => Math.max(4, Math.round((v / max) * 100));
+
+let plChartInst = null;
+
+function renderKPIs(cities, products, offices) {
+  const totalRev    = cities.reduce((s,c) => s + parseFloat(c.total_revenue), 0);
+  const totalOrders = cities.reduce((s,c) => s + parseInt(c.total_orders), 0);
+  const top = [...products].sort((a,b) => b.total_revenue - a.total_revenue)[0];
+  const topOffice = [...offices].sort((a,b) => b.total_revenue - a.total_revenue)[0];
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--amber);"></div>
+      <div class="kpi-label">Total revenue</div>
+      <div class="kpi-value">${peso(totalRev)}</div>
+      <div class="kpi-sub">${totalOrders} orders · ${cities.length} cities</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--blue);"></div>
+      <div class="kpi-label">Top product</div>
+      <div class="kpi-value" style="font-size:15px;line-height:1.3;">${top.product}</div>
+      <div class="kpi-sub">${peso(top.total_revenue)} · ${Number(top.total_orders).toLocaleString()} units</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--green);"></div>
+      <div class="kpi-label">Best office</div>
+      <div class="kpi-value" style="font-size:20px;">${topOffice.office_city}</div>
+      <div class="kpi-sub">${peso(topOffice.total_revenue)} · ${topOffice.total_orders} orders</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-accent" style="background:var(--amber);"></div>
+      <div class="kpi-label">Avg order value</div>
+      <div class="kpi-value">${peso(totalRev / totalOrders)}</div>
+      <div class="kpi-sub">across all cities</div>
+    </div>`;
+}
+
+function renderProductLines(data) {
+  const sorted = [...data].sort((a,b) => b.total_revenue - a.total_revenue);
+  document.getElementById('plTag').textContent = sorted.length + ' lines';
+  if (plChartInst) { plChartInst.destroy(); plChartInst = null; }
+  plChartInst = new Chart(document.getElementById('plChart'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(d => d.product_line),
+      datasets: [{
+        label: 'Revenue',
+        data: sorted.map(d => parseFloat(d.total_revenue)),
+        backgroundColor: BLUE_SHADES,
+        borderRadius: 6, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#7a7a90', font: { size: 11, family: 'Sora' } } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#7a7a90', font: { size: 10, family: 'JetBrains Mono' },
+            callback: v => '₱' + (v/1000).toFixed(0) + 'K' } }
+      }
+    }
+  });
+  document.getElementById('plDescriptions').innerHTML = sorted
+    .filter(d => d.description)
+    .map((d,i) => `<div class="pl-desc" style="color:${BLUE_SHADES[Math.min(i,4)]}88;">
+      <strong style="color:${BLUE_SHADES[Math.min(i,4)]};">${d.product_line}:</strong> ${d.description}
+    </div>`).join('');
+}
+
+function renderCities(data) {
+  const sorted = [...data].sort((a,b) => b.total_revenue - a.total_revenue).slice(0, 8);
+  const max = parseFloat(sorted[0].total_revenue);
+  document.getElementById('cityTag').textContent = data.length + ' cities';
+  document.getElementById('cityBars').innerHTML = sorted.map((d,i) => `
+    <div class="bar-row">
+      <span class="bar-name">${d.city}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct(d.total_revenue,max)}%;background:${BLUE_SHADES[Math.min(i,4)]};"></div></div>
+      <span class="bar-val">${peso(d.total_revenue)}</span>
+    </div>`).join('');
+}
+
+function renderEmployees(data) {
+  const sorted = [...data].sort((a,b) => b.total_revenue - a.total_revenue).slice(0, 5);
+  document.getElementById('empTag').textContent = data.length + ' reps';
+  document.getElementById('empList').innerHTML = sorted.map((emp,i) => {
+    const av = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    return `
+      <div class="emp-row">
+        <div class="emp-left">
+          <div class="avatar" style="background:${av.bg};color:${av.c};">${initials(emp.employee_name)}</div>
+          <div>
+            <div class="emp-name">${emp.employee_name}</div>
+            <div class="emp-meta">${emp.total_orders} orders · ${peso(emp.aov)} AOV</div>
+          </div>
+        </div>
+        <div class="emp-rev">${peso(emp.total_revenue)}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderOffices(data) {
+  const sorted = [...data].sort((a,b) => b.total_revenue - a.total_revenue);
+  const max = parseFloat(sorted[0].total_revenue);
+  document.getElementById('officeTag').textContent = sorted.length + ' offices';
+  document.getElementById('officeBars').innerHTML = sorted.map((d,i) => `
+    <div class="bar-row">
+      <span class="bar-name">${d.office_city}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct(d.total_revenue,max)}%;background:${AMBER_SHADES[Math.min(i,4)]};"></div></div>
+      <span class="bar-val">${peso(d.total_revenue)}</span>
+    </div>`).join('');
+}
+
+function renderProducts(data) {
+  const sorted = [...data].sort((a,b) => b.total_revenue - a.total_revenue);
+  document.getElementById('prodTag').textContent = sorted.length + ' products';
+  const rc = i => (['r1','r2','r3'][i] ?? 'rn');
+  document.getElementById('prodBody').innerHTML = sorted.map((p,i) => `
+    <tr>
+      <td><span class="rank-badge ${rc(i)}">${i+1}</span></td>
+      <td>${p.product}</td>
+      <td style="text-align:right;font-family:var(--mono);color:var(--text-2);">${Number(p.total_orders).toLocaleString()}</td>
+      <td>${peso(p.total_revenue)}</td>
+    </tr>`).join('');
+}
+
+async function loadAll() {
+  const safe = async (path, fn, extra={}) => {
+    try { fn(await load(path, extra)); } catch(e) { console.warn(`[${path}]`, e.message); }
+  };
+
+  const [cities, products, employees, offices] = await Promise.allSettled([
+    load('/sales/cities'),
+    load('/sales/products'),
+    load('/sales/employee'),
+    load('/sales/offices'),
+  ]);
+
+  if (cities.status==='fulfilled' && products.status==='fulfilled' && offices.status==='fulfilled')
+    renderKPIs(cities.value, products.value, offices.value);
+
+  if (cities.status    === 'fulfilled') { renderCities(cities.value); populateCityDropdown(cities.value); }
+  if (employees.status === 'fulfilled') renderEmployees(employees.value);
+  if (offices.status   === 'fulfilled') { renderOffices(offices.value); populateOfficeDropdown(offices.value); }
+  if (products.status  === 'fulfilled') renderProducts(products.value);
+
+  await safe('/sales/product_line', renderProductLines);
+}
+
+loadAll();
+</script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 # Business Intelligence ETL Project
-
+- Contributors:
+  - Allego, Yuan Paolo A. 
+  - Nale, Luther Ian S.
 # Table of Contents
 - [Business Intelligence ETL Project](#business-intelligence-etl-project)
 - [Table of Contents](#table-of-contents)
@@ -9,6 +11,9 @@
     - [MySQL](#mysql)
     - [Python Venv](#python-venv)
     - [Web Server use](#web-server-use)
+      - [Run Both Servers](#run-both-servers)
+      - [Run Backend Server](#run-backend-server)
+      - [Run Frontend Server](#run-frontend-server)
     - [API use](#api-use)
   - [KPIs to Address](#kpis-to-address)
     - [1. Which city has the best market for sales?](#1-which-city-has-the-best-market-for-sales)
@@ -16,6 +21,7 @@
     - [3. Which office rpovides the best sales support?](#3-which-office-rpovides-the-best-sales-support)
     - [4. Which Sales Rep Generates the most revenue?](#4-which-sales-rep-generates-the-most-revenue)
     - [5. Which product line generates the most revenue?](#5-which-product-line-generates-the-most-revenue)
+  - [Filters](#filters)
   - [API Enpoints](#api-enpoints)
     - [`/etl` Endpoints](#etl-endpoints)
       - [1. `GET /etl/refresh`](#1-get-etlrefresh)
@@ -32,12 +38,19 @@
 ## Overview
 - This ETL Project's focus is on building a data pipeline, dashboard, and data visualization.  This codebase focuses on the backend code where the pipeline between the two databases: `orderTracking` and `orderStatistics`
 ## Tech Stack
-- The project codebase is comprised of Python
+- The backend codebase is comprised of Python:
   - FastAPI framework to create APIs and routes
   - Uvicorn to run the web server
   - SQAlchemy as the ORM framework
   - PyMySQL for the MySQL driver
 - All of the `pip` dependencies are listed on [requirements.txt](requirements.txt) 
+
+- The frontend codebase is comprised of:
+  - HTML
+  - CSS
+  - JavaScript (vanilla)
+> *Frontend dev, please update this if you're using libraries/dependencies.  Then remove this message afterwards*
+
 
 ## Walkthrough
 ### MySQL
@@ -67,196 +80,212 @@
     C:\path\to\project>          # venv is not active
     (.venv) C:\path\to\project>  # venv is active
     ```
+  - If it doesn't work, run this command to manually activate the venv:
+    ```shell
+    C:\path\to\project> ./.venv/Scripts/activate.bat
+    ```
 
 - Next, use the following command to install the dependencies:
     ```shell
-    pip install -r requirements.txt
+    pip install -r requirements.text
     ```
     - `pip`, or Python's package manager, will recursively install all the listed `requirements.txt`
 
 ### Web Server use
-- To run the web server, simply just run `./main.py` either from the VS Code GUI or by using `python main.py` in the terminal
-  - You will now be able to access it via `http://localhost:5010`
-    - Opening this should show a JSON message of:
-    ```json
-    {
-        "message": "it works!(✿◕‿◕✿)"
-    }
+#### Run Both Servers
+- To run the both backend and frontend server, simply only type `run_servers` in the terminal from the project root.  This is start two new cmd windows that will run the backend server (`app/main.py`) and the frontend server (`frontend/run.py`) 
+  - PORTS:
+    - Backend: 5010
+    - Frontend: 5090
+#### Run Backend Server
+- To run the backend server, follow this command:
+    ```shell
+    (.venv) C:\path\to\project>run_back
     ```
+
+#### Run Frontend Server
+- To run the frontend server, follow this command:
+    ```shell
+    (.venv) C:\path\to\project>run_front
+    ```
+
 
 ### API use
 - To use the API endpoint, the JavaScript endpoint function is already provided below along with a usage example:
     ```javascript
     
     /**
-    * API call function using GET method
-    * @param {string} endpoint - The name of the endpoint to call; E.G., `sale/cities`
-    * @returns {Promise<Array<Object>>} An array of OBjects from a JSON reponse
-    * @throws {Error} If the fetch fails
-    * @async Waits for the backend API to respond
+    * @param {string} key - The name of then enpoint to call
+    * @returns {Array<Object>} An array of objects from a JSON response
+    * @throws {Error} if the fetch fails, it throws the HTTP Error code
     */
-    async function fetch_data(endpoint) {
-        const api_url = `http://localhost:5010/${endpoint}`;
-        try{
-            const response = await fetch(api_url);
-
-            if (!response.ok){
-                throw new Error(`HTTP ERROR! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            return data;
-        } catch (error){
-            console.error('FETCH ERROR:', error);
-            throw error;
-        }
+    async function load(key) {
+        const r = await fetch(EP[key]);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
     }
 
-    // Usage:
-    // Contained inside a try-catch to handle errors gracefully
-    try{    
-        // Always use `await` in front of the function because it's async
-        const cities = await fetch_data("sales/cities");
-
-        /* 
-        `cities` now hold the value, an Array<Object> (array of objects)
-        You can now use .forEach() to do the logic here
-        */
-        cities.forEach(city => {
-            console.log("name:", city.city);
-            console.log("revenue:", city.total_revenue);
-            console.log("orders:", city.total_orders);
-        });
-    } catch (error) {
-        console.error("INIT ERROR:", error);
-        
-    }
     ```
 
 ## KPIs to Address
 - These KPIs (Key Performance Indicators) all involve the revenues of various entities involved in the sample business database.  However, an additional metric has been added to provide more insight to the business; Average Order Value (`aov`)
   - This measures the average value of the revenue per order
     - Computed by: `total_revenue` / `total_orders`
+
+All KPIs are answered from a single unified star schema:
+
+**Fact table:** `fact_sales` — each row is an order-detail line with FK references to 5 dimensions.
+**Dimension tables:** `dim_city`, `dim_office`, `dim_sales_rep`, `dim_product`, `dim_product_line`
+
+```sql
+CREATE TABLE `fact_sales` (
+  `order_id`       varchar(15)     NOT NULL,
+  `order_date`     date            NOT NULL,
+  `city_id`        int             NOT NULL,
+  `office_id`      int             NOT NULL,
+  `sales_rep_id`   int             NOT NULL,
+  `product_id`     int             NOT NULL,
+  `product_line_id` int            NOT NULL,
+  `revenue`        decimal(10,2)   NOT NULL,
+  `quantity`       int             NOT NULL,
+  PRIMARY KEY (`order_id`, `product_id`),
+  CONSTRAINT `fk_fact_city`        FOREIGN KEY (`city_id`)        REFERENCES `dim_city`        (`city_id`),
+  CONSTRAINT `fk_fact_office`      FOREIGN KEY (`office_id`)      REFERENCES `dim_office`      (`office_id`),
+  CONSTRAINT `fk_fact_sales_rep`   FOREIGN KEY (`sales_rep_id`)   REFERENCES `dim_sales_rep`   (`sales_rep_id`),
+  CONSTRAINT `fk_fact_product`     FOREIGN KEY (`product_id`)     REFERENCES `dim_product`     (`product_id`),
+  CONSTRAINT `fk_fact_product_line` FOREIGN KEY (`product_line_id`) REFERENCES `dim_product_line` (`product_line_id`)
+);
+```
+
+Each KPI below simply joins `fact_sales` with the relevant dimension table and aggregates.
+
 ### 1. Which city has the best market for sales?
 - This question can be answered by computing the total sales and total orders (`total_revenue` and `total_orders`) for each city and then comparing them to find out which city has the highest sales.
 
-**Schema:**
+**How it's queried:** `fact_sales` is joined with `dim_city` on `city_id`, grouped by `city_name`.
+
 ```sql
-CREATE TABLE IF NOT EXISTS `Fact_Sales` (
-    `sales_id` INT AUTO_INCREMENT PRIMARY KEY,
-
-    `location_id` VARCHAR(50) NOT NULL,
-    `total_revenue` DECIMAL(10, 2) NOT NULL,
-    `total_orders` INT NOT NULL,
-    
-);
-
-CREATE TABLE IF NOT EXISTS `Dim_Sales` (
-    `location_id` INT AUTO_INCREMENT PRIMARY KEY,
-    `customer_city` VARCHAR(50) NOT NULL
-);
+SELECT dc.city_name,
+       SUM(fs.revenue) AS total_revenue,
+       COUNT(fs.order_id) AS total_orders
+FROM fact_sales fs
+JOIN dim_city dc ON fs.city_id = dc.city_id
+GROUP BY dc.city_name;
 ```
-- The source data will be transformed as:
-  -  `total_revenue` = `COUNT(order_id)` * `order_total_price` (as grouped by `customer_city`)'
-  -  `total_orders` = `COUNT(order_id)` (as grouped by `customer_city`)'
-
-**Logic**
-- Since the `Customer` object has a relationship with `Orders` and can be accessed through it, we can use the `customer_city` attribute from the `Customer` object to group the orders and compute the total revenue and total orders for each city. This will allow us to determine which city has the best market for sales.
 
 
 
 ### 2. Which product has the highest sales?
 - This question can be answered by computing the total sales and total orders (`total_revenue` and `total_orders`) for each product and then comparing them to find out which product has the highest sales.
 
-Schema:
+**How it's queried:** `fact_sales` is joined with `dim_product` on `product_id`, grouped by `product_name`.
+
 ```sql
-CREATE TABLE IF NOT EXISTS `Fact_Product_Sales` (
-    `product_sales_id` INT AUTO_INCREMENT PRIMARY KEY,
-    `product_code` INT NOT NULL,
-    
-    `total_revenue` DECIMAL(10, 2) NOT NULL,
-    `total_orders` INT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS `Dim_Product_Sales` (
-    `product_code` INT AUTO_INCREMENT PRIMARY KEY,
-    `product_name` VARCHAR(50) NOT NULL,
-);
+SELECT dp.product_name,
+       SUM(fs.revenue) AS total_revenue,
+       COUNT(fs.order_id) AS total_orders
+FROM fact_sales fs
+JOIN dim_product dp ON fs.product_id = dp.product_id
+GROUP BY dp.product_name;
 ```
-- The source data will be transformed as:
-  -  `total_revenue` = `COUNT(order_id)` * `order_total_price` (as grouped by `product_code`)'
-  -  `total_orders` = `COUNT(order_id)` (as grouped by `product_code`)'
 
-### 3. Which office rpovides the best sales support?
+### 3. Which office provides the best sales support?
 - This question can be answered by computing the total sales and total orders (`total_revenue` and `total_orders`) for each office and then comparing them to find out which office provides the best sales support.
-Schema:
-```sql
-CREATE TABLE IF NOT EXISTS `Fact_Office_Sales` (
-    `office_sales_id` INT AUTO_INCREMENT PRIMARY KEY,
-    `office_code` INT NOT NULL,
-    
-    `total_revenue` DECIMAL(10, 2) NOT NULL, 
-    `total_orders` INT NOT NULL
-);
 
-CREATE TABLE IF NOT EXISTS `Dim_Office_Sales` (
-    `office_code` VARCHAR(10) PRIMARY KEY,
-    `office_city` VARCHAR(50) NOT NULL,
-);
+**How it's queried:** `fact_sales` is joined with `dim_office` on `office_id`, grouped by `office_city`.
+
+```sql
+SELECT off.office_city,
+       SUM(fs.revenue) AS total_revenue,
+       COUNT(fs.order_id) AS total_orders
+FROM fact_sales fs
+JOIN dim_office off ON fs.office_id = off.office_id
+GROUP BY off.office_city;
 ```
-- The source data will be transformed as:
-  -  `total_revenue` = `COUNT(order_id)` * `order_total_price` (as grouped by `office_code`)'
-  -  `total_orders` = `COUNT(order_id)` (as grouped by `office_code`)'
 
 ### 4. Which Sales Rep Generates the most revenue?
 - This question can be answered by computing the total sales (`total_revenue`) of for each sales representative and then comparing them to find out which employee has the most revenue
 - Additionally, the total number of orders (`total_orders`) per employee, and their office location (`office_city`) will be taken into account
 
-Schema:
-```sql
-CREATE TABLE IF NOT EXISTS `Fact_Employee_Renevue` (
-    `employee_revenue_id` INT AUTO_INCREMENT PRIMARY KEY,
-    `employee_number` INT NOT NULL,
-    `office_code` VARCHAR(10) NOT NULL,
-    
-    `total_revenue` DECIMAL(10, 2) NOT NULL, 
-    `total_orders` INT NOT NULL
-);
+**How it's queried:** `fact_sales` is joined with `dim_sales_rep` on `sales_rep_id` and with `dim_office` on `office_id`, grouped by sales rep.
 
-CREATE TABLE IF NOT EXISTS `Dim_Employee_Revenue` (
-    `employee_number` INT AUTO_INCREMENT PRIMARY KEY,
-    `employee_name` VARCHAR(50) NOT NULL,
-    `office_city` VARCHAR(50) NOT NULL
-);
+```sql
+SELECT dsr.sales_rep_name,
+       off.office_city,
+       SUM(fs.revenue) AS total_revenue,
+       COUNT(fs.order_id) AS total_orders
+FROM fact_sales fs
+JOIN dim_sales_rep dsr ON fs.sales_rep_id = dsr.sales_rep_id
+JOIN dim_office off ON fs.office_id = off.office_id
+GROUP BY dsr.sales_rep_id;
 ```
-- The source data will be transformed as:
-  -  `total_revenue` = `COUNT(order_id)` * `order_total_price` (as grouped by `employee_number`)'
-  -  `total_orders` = `COUNT(order_id)` (as grouped by `employee_number`)'
 
 ### 5. Which product line generates the most revenue?
 - This question can be answered by computing the total sales (`total_revenue`) of for each product line and then comparing them to find out which product line generates the most revenue
 - Additionally, the total number of orders (`total_orders`) per product line will be taken into account
 
+**How it's queried:** `fact_sales` is joined with `dim_product_line` on `product_line_id`, grouped by `product_line`.
 
-Schema:
 ```sql
-CREATE TABLE IF NOT EXISTS `Fact_Product_Line_Revenue` (
-    `product_line_revenue_id` INT AUTO_INCREMENT PRIMARY KEY,
-    `product_line` VARCHAR(50) NOT NULL,
-    
-    `total_revenue` DECIMAL(10, 2) NOT NULL, 
-    `total_orders` INT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS `Dim_Product_Line_Revenue` (
-    `product_line` VARCHAR(50) PRIMARY KEY,
-    `product_line_description` VARCHAR(255) NOT NULL
-);
+SELECT dpl.product_line,
+       SUM(fs.revenue) AS total_revenue,
+       COUNT(fs.order_id) AS total_orders
+FROM fact_sales fs
+JOIN dim_product_line dpl ON fs.product_line_id = dpl.product_line_id
+GROUP BY dpl.product_line;
 ```
-- The source data will be transformed as:
-  -  `total_revenue` = `COUNT(order_id)` * `order_total_price` (as grouped by `product_line`)'
-  -  `total_orders` = `COUNT(order_id)` (as grouped by `product_line`)'
 
+## Filters
+All `/sales` endpoints accept query parameters to narrow results. Parameters are optional — omit them to get unfiltered data.
+
+### Common parameters (available on all `/sales` endpoints)
+
+| Parameter | Type | Description | Example |
+|---|---|---|---|
+| `start_date` | `date` (YYYY-MM-DD) | Include orders on or after this date | `?start_date=2026-01-01` |
+| `end_date` | `date` (YYYY-MM-DD) | Include orders on or before this date | `?end_date=2026-06-30` |
+| `year` | `int` | Filter to a specific calendar year | `?year=2025` |
+| `quarter` | `int` (1–4) | Filter to a specific quarter | `?quarter=3` |
+| `half` | `int` (1–2) | Filter to a half-year (1 = Jan–Jun, 2 = Jul–Dec) | `?half=2` |
+
+### Endpoint-specific parameters
+
+| Parameter | Available on |
+|---|---|
+| `city` | `/cities`, `/offices`, `/employee` |
+| `office_city` | `/offices`, `/employee` |
+
+### Filter applicability matrix
+
+| Endpoint | `start_date` / `end_date` | `year` | `quarter` | `half` | `city` | `office_city` |
+|---|---|---|---|---|---|---|
+| `/cities` | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| `/offices` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/products` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `/employee` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/product_line` | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+
+### Example calls
+
+```shell
+# City revenue for 2025 only
+curl "http://localhost:5010/sales/cities?year=2025"
+
+# Products sold in Q4
+curl "http://localhost:5010/sales/products?quarter=4"
+
+# Office revenue for H2 (Jul–Dec)
+curl "http://localhost:5010/sales/offices?half=2"
+
+# Employees in the Makati office
+curl "http://localhost:5010/sales/employee?office_city=Makati"
+
+# City revenue for a specific city with a date range
+curl "http://localhost:5010/sales/cities?city=Manila&start_date=2025-06-01&end_date=2025-12-31"
+
+# Product line revenue from Jan 1, 2026 onward
+curl "http://localhost:5010/sales/product_line?start_date=2026-01-01"
+```
 
 ## API Enpoints
 - There are two categories of the endpoints:
@@ -284,7 +313,8 @@ CREATE TABLE IF NOT EXISTS `Dim_Product_Line_Revenue` (
 
 ### `/sales` Endpoints
 #### 1. `GET /sales/cities`
-- This retrieves the total revenues by city, idenitified by it's location
+- Retrieves total revenue grouped by city
+- **Available filters:** `start_date`, `end_date`, `year`, `quarter`, `half`, `city`
 - Data to receive:
     ```json
     [
@@ -296,9 +326,11 @@ CREATE TABLE IF NOT EXISTS `Dim_Product_Line_Revenue` (
         }
     ]
     ```
+- Example: `GET /sales/cities?city=Manila&year=2025`
 
 #### 2. `GET /sales/offices`
-- This retrieves the office revenues, idenitifed by it's location (city)
+- Retrieves total revenue grouped by office location (city)
+- **Available filters:** `start_date`, `end_date`, `year`, `quarter`, `half`, `city`, `office_city`
 - Data to receive:
     ```json
     [
@@ -310,9 +342,11 @@ CREATE TABLE IF NOT EXISTS `Dim_Product_Line_Revenue` (
         }
     ]
     ```
+- Example: `GET /sales/offices?half=2`
 
 #### 3. `GET /sales/products`
-- This retrieves the revenues of each products
+- Retrieves total revenue grouped by product
+- **Available filters:** `start_date`, `end_date`, `year`, `quarter`, `half`
 - Data to receive:
     ```json
     [
@@ -324,9 +358,12 @@ CREATE TABLE IF NOT EXISTS `Dim_Product_Line_Revenue` (
         }
     ]
     ```
+- Example: `GET /sales/products?quarter=4`
+
 #### 4. `GET /sales/employee`
-- This retrieves the revenues of each sales representative
-- Data to revceive:
+- Retrieves total revenue grouped by sales representative
+- **Available filters:** `start_date`, `end_date`, `year`, `quarter`, `half`, `city`, `office_city`
+- Data to receive:
     ```json
     [
         {
@@ -338,8 +375,11 @@ CREATE TABLE IF NOT EXISTS `Dim_Product_Line_Revenue` (
         }
     ]
     ```
+- Example: `GET /sales/employee?office_city=Makati`
+
 #### 5. `GET /sales/product_line`
-- This retrieves the revenues of each product line
+- Retrieves total revenue grouped by product line
+- **Available filters:** `start_date`, `end_date`, `year`, `quarter`, `half`
 - Data to receive:
     ```json
     [
@@ -352,6 +392,7 @@ CREATE TABLE IF NOT EXISTS `Dim_Product_Line_Revenue` (
         }
     ]
     ```
+- Example: `GET /sales/product_line?start_date=2026-01-01`
 
 
 ## Auxiliary Information
@@ -363,6 +404,15 @@ sqlacodegen_v2 mysql+pymysql://root:password@localhost/database_name --outfile m
 ```
 - This tool is in the `sqlacodegen_v2` package, so make sure to install it first using `pip` if you haven't already.
     ```shell
-    `pip` install sqlacodegen-v2
+    pip install sqlacodegen-v2
     ```
 
+
+## FRONTEND
+### Added Filters
+
+### Added Refresh Button
+
+### Added a cancel Filter on Multiple added filters
+
+### Optimized Dashboard

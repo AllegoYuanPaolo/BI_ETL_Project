@@ -1,0 +1,11 @@
+2026-06-14 13:48:17,951 - etl.ext_trans - get_sales_data - INFO - Extracting order-level sales data...
+2026-06-14 13:48:18,099 - etl.ext_trans - get_sales_data - INFO - Successfully extracted 166 order-detail rows.
+2026-06-14 13:48:18,101 - etl.load - _clear_tables - INFO - Clearing all destination tables...
+2026-06-14 13:48:18,179 - etl.load - _clear_tables - INFO - All tables cleared.
+2026-06-14 13:48:18,203 - etl.load - _load_dim_city - INFO - Loaded 10 cities.
+2026-06-14 13:48:18,209 - etl.load - _load_dim_office - INFO - Loaded 6 offices.
+2026-06-14 13:48:18,220 - etl.load - _load_dim_sales_rep - INFO - Loaded 14 sales reps.
+2026-06-14 13:48:18,225 - etl.load - _load_dim_product_line - INFO - Loaded 4 product lines.
+2026-06-14 13:48:18,238 - etl.load - _load_dim_product - INFO - Loaded 13 products.
+2026-06-14 13:48:18,266 - etl.load - _load_fact_sales - INFO - Loaded 166 fact rows.
+2026-06-14 13:48:18,269 - etl.load - load_data - INFO - Data load complete.
